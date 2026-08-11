@@ -1,10 +1,10 @@
 export default function Hero() {
   return (
-    <section className="bg-white px-6 py-8">
-      <div className="mx-auto flex min-h-[420px] max-w-7xl items-center overflow-hidden rounded-2xl bg-[#fff1e4]">
+    <section className="bg-white px-6 py-0">
+      <div className="mx-auto flex min-h-[330px] max-w-7xl items-center overflow-hidden rounded-2xl bg-[#fff1e4]">
 
         {/* Left Content */}
-        <div className="w-full px-8 py-14 sm:px-12 lg:w-1/2 lg:px-16">
+        <div className="w-full px-8 py-2 sm:px-12 lg:w-1/2 lg:px-26">
 
           <p className="mb-4 text-sm font-semibold uppercase tracking-wider text-green-700">
             Welcome to ShopCart
@@ -33,8 +33,8 @@ export default function Hero() {
           <img
             src="/hero-image.png"
             alt="ShopCart"
-            className="h-[400px] w-auto object-contain"
-          />
+className="h-[400px] w-auto object-contain"
+/>
         </div>
 
       </div>
