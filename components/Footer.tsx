@@ -225,7 +225,7 @@ export default function Footer() {
         {/* Bottom */}
         <div className="mt-12 border-t border-gray-200 pt-6 text-center">
           <p className="text-sm text-gray-500">
-            © 2026 ShopCart. All rights reserved.
+            © 2026 SHOPCART. All rights reserved.
           </p>
         </div>
 
