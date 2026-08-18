@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useWishlist } from "../app/WishlistContext";
 
 const navLinks = [
   { name: "Home", href: "/" },
@@ -100,6 +101,7 @@ function CloseIcon() {
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { wishlist } = useWishlist();
 
   return (
     <header className="sticky top-0 z-50 border-b border-gray-100 bg-white">
@@ -172,7 +174,7 @@ export default function Navbar() {
             <HeartIcon />
 
             <span className="absolute -right-2 -top-2 flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-[#2f9638] px-1 text-[9px] font-bold text-white">
-              0
+               {wishlist.length}
             </span>
           </button>
 
@@ -246,7 +248,7 @@ export default function Navbar() {
                 <HeartIcon />
 
                 <span className="absolute -right-2 -top-2 flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-[#2f9638] px-1 text-[9px] font-bold text-white">
-                  0
+                   {wishlist.length}
                 </span>
               </button>
             </div>
