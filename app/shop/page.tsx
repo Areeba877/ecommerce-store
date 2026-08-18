@@ -26,6 +26,7 @@ export default function ShopPage() {
       setMessage("");
     }, 2500);
   };
+
   return (
     <>
       <Navbar />
@@ -72,7 +73,7 @@ export default function ShopPage() {
                     <button
                       type="button"
                       onClick={() =>
-                        toggleWishlist(product.id, product.name)
+                        handleWishlist(product.id, product.name)
                       }
                       className={`absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full transition-all duration-300 ${
                         isWishlisted
