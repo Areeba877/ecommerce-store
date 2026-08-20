@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
+import { Resend } from "resend";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: Request) {
   try {
@@ -49,23 +52,66 @@ export async function POST(request: Request) {
       verificationTokenExpires,
     });
 
-const verificationUrl = `${new URL(request.url).origin}/api/auth/verify-email?token=${verificationToken}`;
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
 
-return NextResponse.json(
-  {
-    message: "Account created successfully. Please verify your email.",
-    verificationUrl,
-    user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      isVerified: user.isVerified,
-    },
-  },
-  { status: 201 }
-);
+    const verificationUrl =
+      `${baseUrl}/api/auth/verify-email?token=${verificationToken}`;
 
+    const { error: emailError } = await resend.emails.send({
+      from: "Ecommerce Store <onboarding@resend.dev>",
+      to: [normalizedEmail],
+      subject: "Verify your email",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
+          <h2>Your account has been created!</h2>
 
+          <p>Hello ${name.trim()},</p>
+
+          <p>
+            Please verify your email address to activate your account.
+          </p>
+
+          <a
+            href="${verificationUrl}"
+            style="
+              display: inline-block;
+              padding: 12px 24px;
+              background-color: #155e4a;
+              color: white;
+              text-decoration: none;
+              border-radius: 999px;
+              font-weight: bold;
+            "
+          >
+            Verify Email
+          </a>
+
+          <p style="margin-top: 20px;">
+            This verification link will expire in 24 hours.
+          </p>
+        </div>
+      `,
+    });
+
+    if (emailError) {
+      console.error("Resend email error:", emailError);
+
+      await User.findByIdAndDelete(user._id);
+
+      return NextResponse.json(
+        { message: "Account could not be created because verification email failed." },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        message:
+          "Your account has been created. Please verify your email.",
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Signup error:", error);
 
