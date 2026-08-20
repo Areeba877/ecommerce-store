@@ -76,6 +76,15 @@ export default function LoginPage() {
             />
           </div>
 
+          <div className="text-right">
+  <Link
+    href="/forgot-password"
+    className="text-sm text-[#155e4a] underline"
+  >
+    Forgot Password?
+  </Link>
+</div>
+
           <button
             type="submit"
             onClick={() => console.log("LOGIN BUTTON CLICKED")}
