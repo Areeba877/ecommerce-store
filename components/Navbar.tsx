@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { useWishlist } from "../app/WishlistContext";
 
 const navLinks = [
   { name: "Home", href: "/" },
   { name: "Shop", href: "/shop" },
   { name: "Blog", href: "/blog" },
-  { name: "Hot Deals", href: "/deals" },
+  { name: "Best Offers", href: "/offers" },
 ];
 
 function SearchIcon() {
@@ -101,7 +102,10 @@ function CloseIcon() {
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const pathname = usePathname();
+
   const { wishlist } = useWishlist();
+  
 
   return (
     <header className="sticky top-0 z-50 border-b border-gray-100 bg-white">
@@ -109,36 +113,43 @@ export default function Navbar() {
 
         {/* Logo */}
         <Link
-  href="/"
-  className="group text-[23px] font-extrabold tracking-tight"
->
-  <span className="text-[#123b2a] transition-colors duration-300 group-hover:text-[#2f9638]">
-    SHOPCAR
-  </span>
-  <span className="text-[#2f9638] transition-colors duration-300 group-hover:text-[#123b2a]">
-    T
-  </span>
-</Link>
+          href="/"
+          className="group text-[23px] font-extrabold tracking-tight"
+        >
+          <span className="text-[#123b2a] transition-colors duration-300 group-hover:text-[#2f9638]">
+            SHOPCAR
+          </span>
+          <span className="text-[#2f9638] transition-colors duration-300 group-hover:text-[#123b2a]">
+            T
+          </span>
+        </Link>
 
         {/* Desktop Navigation */}
         <div className="hidden items-center gap-9 md:flex">
-          {navLinks.map((link, index) => (
-            <Link
-              key={link.name}
-              href={link.href}
-              className={`relative py-7 text-[15px] font-semibold transition-colors ${
-                index === 0
-                  ? "text-[#2f9638]"
-                  : "text-gray-600 hover:text-[#2f9638]"
-              }`}
-            >
-              {link.name}
+         {navLinks.map((link) => {
+  const isActive =
+    link.href === "/"
+      ? pathname === "/"
+      : pathname.startsWith(link.href);
 
-              {index === 0 && (
-                <span className="absolute bottom-[13px] left-0 h-[2px] w-full rounded-full bg-[#2f9638]" />
-              )}
-            </Link>
-          ))}
+  return (
+    <Link
+      key={link.name}
+      href={link.href}
+      className={`relative py-7 text-[15px] font-semibold transition-colors ${
+        isActive
+          ? "text-[#2f9638]"
+          : "text-gray-600 hover:text-[#2f9638]"
+      }`}
+    >
+      {link.name}
+
+      {isActive && (
+        <span className="absolute bottom-[13px] left-0 h-[2px] w-full rounded-full bg-[#2f9638]" />
+      )}
+    </Link>
+  );
+})}
         </div>
 
         {/* Desktop Actions */}
@@ -174,17 +185,17 @@ export default function Navbar() {
             <HeartIcon />
 
             <span className="absolute -right-2 -top-2 flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-[#2f9638] px-1 text-[9px] font-bold text-white">
-               {wishlist.length}
+              {wishlist ? wishlist.length : 0}
             </span>
           </button>
 
-          {/* Login */}
-          <Link
-            href="/login"
-            className="text-[15px] font-semibold text-gray-700 transition-colors hover:text-[#2f9638]"
-          >
-            Login
-          </Link>
+          {/* Desktop Login Button */}
+<Link
+  href="/login"
+  className="cursor-pointer text-[15px] font-semibold text-gray-700 transition-colors hover:text-[#2f9638]"
+>
+  Login
+</Link>
         </div>
 
         {/* Mobile Menu Button */}
@@ -204,20 +215,27 @@ export default function Navbar() {
         <div className="border-t border-gray-100 bg-white px-5 py-5 shadow-sm md:hidden">
           <div className="flex flex-col">
 
-            {navLinks.map((link, index) => (
-              <Link
-                key={link.name}
-                href={link.href}
-                onClick={() => setIsMenuOpen(false)}
-                className={`border-b border-gray-100 py-4 text-[15px] font-semibold ${
-                  index === 0
-                    ? "text-[#2f9638]"
-                    : "text-gray-700 hover:text-[#2f9638]"
-                }`}
-              >
-                {link.name}
-              </Link>
-            ))}
+          {navLinks.map((link) => {
+  const isActive =
+    link.href === "/"
+      ? pathname === "/"
+      : pathname.startsWith(link.href);
+
+  return (
+    <Link
+      key={link.name}
+      href={link.href}
+      onClick={() => setIsMenuOpen(false)}
+      className={`border-b border-gray-100 py-4 text-[15px] font-semibold ${
+        isActive
+          ? "text-[#2f9638]"
+          : "text-gray-700 hover:text-[#2f9638]"
+      }`}
+    >
+      {link.name}
+    </Link>
+  );
+})}
 
             <div className="flex items-center gap-5 border-b border-gray-100 py-4">
               <button
@@ -248,18 +266,19 @@ export default function Navbar() {
                 <HeartIcon />
 
                 <span className="absolute -right-2 -top-2 flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-[#2f9638] px-1 text-[9px] font-bold text-white">
-                   {wishlist.length}
+                  {wishlist ? wishlist.length : 0}
                 </span>
               </button>
             </div>
 
-            <Link
-              href="/login"
-              onClick={() => setIsMenuOpen(false)}
-              className="mt-4 rounded-lg bg-[#2f9638] px-5 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-[#267d2f]"
-            >
-              Login
-            </Link>
+            {/* Mobile Login Button */}
+<Link
+  href="/login"
+  onClick={() => setIsMenuOpen(false)}
+  className="mt-4 block w-full cursor-pointer rounded-lg bg-[#2f9638] px-5 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-[#267d2f]"
+>
+  Login
+</Link>
           </div>
         </div>
       )}
