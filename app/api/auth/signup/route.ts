@@ -37,10 +37,14 @@ export async function POST(request: Request) {
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    const verificationToken = crypto.randomBytes(32).toString("hex");
+    // Generate 6-digit verification code
+    const verificationCode = crypto
+      .randomInt(100000, 1000000)
+      .toString();
 
-    const verificationTokenExpires = new Date(
-      Date.now() + 24 * 60 * 60 * 1000
+    // Code valid for 10 minutes
+    const verificationCodeExpires = new Date(
+      Date.now() + 10 * 60 * 1000
     );
 
     const user = await User.create({
@@ -48,47 +52,47 @@ export async function POST(request: Request) {
       email: normalizedEmail,
       password: hashedPassword,
       isVerified: false,
-      verificationToken,
-      verificationTokenExpires,
+      verificationCode,
+      verificationCodeExpires,
     });
 
-    const baseUrl =
-      process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
-
-    const verificationUrl =
-      `${baseUrl}/api/auth/verify-email?token=${verificationToken}`;
-
+    // Send 6-digit code through Resend
     const { error: emailError } = await resend.emails.send({
       from: "Ecommerce Store <onboarding@resend.dev>",
       to: [normalizedEmail],
-      subject: "Verify your email",
+      subject: "Your email verification code",
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
-          <h2>Your account has been created!</h2>
-
-          <p>Hello ${name.trim()},</p>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 30px;">
+          <h2 style="color: #123b2a;">
+            Verify your email
+          </h2>
 
           <p>
-            Please verify your email address to activate your account.
+            Hello ${name.trim()},
           </p>
 
-          <a
-            href="${verificationUrl}"
+          <p>
+            Your 6-digit verification code is:
+          </p>
+
+          <div
             style="
-              display: inline-block;
-              padding: 12px 24px;
-              background-color: #155e4a;
-              color: white;
-              text-decoration: none;
-              border-radius: 999px;
+              font-size: 32px;
               font-weight: bold;
+              letter-spacing: 8px;
+              color: #155e4a;
+              margin: 25px 0;
             "
           >
-            Verify Email
-          </a>
+            ${verificationCode}
+          </div>
 
-          <p style="margin-top: 20px;">
-            This verification link will expire in 24 hours.
+          <p>
+            Enter this code on the verification page to activate your account.
+          </p>
+
+          <p style="color: #777;">
+            This code will expire in 10 minutes.
           </p>
         </div>
       `,
@@ -100,7 +104,10 @@ export async function POST(request: Request) {
       await User.findByIdAndDelete(user._id);
 
       return NextResponse.json(
-        { message: "Account could not be created because verification email failed." },
+        {
+          message:
+            "Account could not be created because verification email failed.",
+        },
         { status: 500 }
       );
     }
@@ -108,7 +115,8 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         message:
-          "Your account has been created. Please verify your email.",
+          "Your account has been created. Please check your email for the 6-digit verification code.",
+        email: normalizedEmail,
       },
       { status: 201 }
     );
