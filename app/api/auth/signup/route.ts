@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       verificationTokenExpires,
     });
 
-  const verificationUrl = `http://localhost:3000/api/auth/verify-email?token=${verificationToken}`;
+const verificationUrl = `${new URL(request.url).origin}/api/auth/verify-email?token=${verificationToken}`;
 
 return NextResponse.json(
   {
