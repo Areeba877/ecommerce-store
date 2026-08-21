@@ -12,17 +12,24 @@ export default function ShopPage() {
 
   const [message, setMessage] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const productsPerPage = 8;
 
-  const totalPages = Math.ceil(products.length / productsPerPage);
+const filteredProducts = products.filter((product) =>
+  product.name.toLowerCase().includes(searchQuery.toLowerCase())
+);
 
-  const startIndex = (currentPage - 1) * productsPerPage;
+const totalPages = Math.ceil(
+  filteredProducts.length / productsPerPage
+);
 
-  const currentProducts = products.slice(
-    startIndex,
-    startIndex + productsPerPage
-  );
+const startIndex = (currentPage - 1) * productsPerPage;
+
+const currentProducts = filteredProducts.slice(
+  startIndex,
+  startIndex + productsPerPage
+);
 
   const handleWishlist = (productId: string, productName: string) => {
     const alreadyAdded = isWishlisted(productId);
@@ -59,6 +66,19 @@ export default function ShopPage() {
             <p className="mt-2 text-2xl font-semibold text-gray-900">
               Explore all our products and find something you love
             </p>
+
+            <div className="mt-5 max-w-md">
+  <input
+    type="text"
+    value={searchQuery}
+    onChange={(e) => {
+      setSearchQuery(e.target.value);
+      setCurrentPage(1);
+    }}
+    placeholder="Search products..."
+    className="w-full rounded-full border border-gray-300 px-5 py-3 text-sm outline-none transition focus:border-[#155e4a]"
+  />
+</div>
           </div>
 
           {/* Products */}
