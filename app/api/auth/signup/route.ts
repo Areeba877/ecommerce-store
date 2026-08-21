@@ -5,8 +5,6 @@ import { Resend } from "resend";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -20,9 +18,17 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!process.env.RESEND_API_KEY) {
+      return NextResponse.json(
+        { message: "RESEND_API_KEY is not configured." },
+        { status: 500 }
+      );
+    }
+
     await connectDB();
 
     const normalizedEmail = email.trim().toLowerCase();
+    const trimmedName = name.trim();
 
     const existingUser = await User.findOne({
       email: normalizedEmail,
@@ -37,18 +43,16 @@ export async function POST(request: Request) {
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Generate 6-digit verification code
     const verificationCode = crypto
       .randomInt(100000, 1000000)
       .toString();
 
-    // Code valid for 10 minutes
     const verificationCodeExpires = new Date(
       Date.now() + 10 * 60 * 1000
     );
 
     const user = await User.create({
-      name: name.trim(),
+      name: trimmedName,
       email: normalizedEmail,
       password: hashedPassword,
       isVerified: false,
@@ -56,44 +60,30 @@ export async function POST(request: Request) {
       verificationCodeExpires,
     });
 
-    // Send 6-digit code through Resend
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
     const { error: emailError } = await resend.emails.send({
       from: "Ecommerce Store <onboarding@resend.dev>",
       to: [normalizedEmail],
-      subject: "Your email verification code",
+      subject: "Your verification code",
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 30px;">
-          <h2 style="color: #123b2a;">
-            Verify your email
-          </h2>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
+          <h2>Verify your email</h2>
 
-          <p>
-            Hello ${name.trim()},
-          </p>
+          <p>Hello ${trimmedName},</p>
 
-          <p>
-            Your 6-digit verification code is:
-          </p>
+          <p>Your 6-digit verification code is:</p>
 
-          <div
-            style="
-              font-size: 32px;
-              font-weight: bold;
-              letter-spacing: 8px;
-              color: #155e4a;
-              margin: 25px 0;
-            "
-          >
+          <div style="
+            font-size: 32px;
+            font-weight: bold;
+            letter-spacing: 8px;
+            margin: 24px 0;
+          ">
             ${verificationCode}
           </div>
 
-          <p>
-            Enter this code on the verification page to activate your account.
-          </p>
-
-          <p style="color: #777;">
-            This code will expire in 10 minutes.
-          </p>
+          <p>This code will expire in 10 minutes.</p>
         </div>
       `,
     });
@@ -115,8 +105,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         message:
-          "Your account has been created. Please check your email for the 6-digit verification code.",
-        email: normalizedEmail,
+          "Account created successfully. Please check your email for the verification code.",
       },
       { status: 201 }
     );
