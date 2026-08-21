@@ -9,7 +9,20 @@ import { useState } from "react";
 
 export default function ShopPage() {
   const { wishlist, toggleWishlist, isWishlisted } = useWishlist();
+
   const [message, setMessage] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const productsPerPage = 8;
+
+  const totalPages = Math.ceil(products.length / productsPerPage);
+
+  const startIndex = (currentPage - 1) * productsPerPage;
+
+  const currentProducts = products.slice(
+    startIndex,
+    startIndex + productsPerPage
+  );
 
   const handleWishlist = (productId: string, productName: string) => {
     const alreadyAdded = isWishlisted(productId);
@@ -50,9 +63,8 @@ export default function ShopPage() {
 
           {/* Products */}
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-
-            {products.map((product) => {
-              const isWishlisted = wishlist.includes(product.id);
+            {currentProducts.map((product) => {
+              const wishlisted = wishlist.includes(product.id);
 
               return (
                 <div
@@ -76,18 +88,18 @@ export default function ShopPage() {
                         handleWishlist(product.id, product.name)
                       }
                       className={`absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full transition-all duration-300 ${
-                        isWishlisted
+                        wishlisted
                           ? "bg-[#155e4a] text-white"
                           : "bg-white text-gray-700 hover:bg-[#155e4a] hover:text-white"
                       }`}
                       aria-label={
-                        isWishlisted
+                        wishlisted
                           ? `Remove ${product.name} from wishlist`
                           : `Add ${product.name} to wishlist`
                       }
                     >
                       <span className="text-xl">
-                        {isWishlisted ? "♥" : "♡"}
+                        {wishlisted ? "♥" : "♡"}
                       </span>
                     </button>
 
@@ -139,11 +151,50 @@ export default function ShopPage() {
                     >
                       Add to Cart
                     </button>
-
                   </div>
                 </div>
               );
             })}
+          </div>
+
+          {/* Pagination */}
+          <div className="mt-10 flex items-center justify-center gap-2">
+
+            <button
+              type="button"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((page) => page - 1)}
+              className="rounded-full border border-gray-300 px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Previous
+            </button>
+
+            {Array.from(
+              { length: totalPages },
+              (_, index) => index + 1
+            ).map((page) => (
+              <button
+                key={page}
+                type="button"
+                onClick={() => setCurrentPage(page)}
+                className={`h-10 w-10 rounded-full text-sm font-semibold ${
+                  currentPage === page
+                    ? "bg-[#155e4a] text-white"
+                    : "border border-gray-300 bg-white text-gray-700"
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+
+            <button
+              type="button"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((page) => page + 1)}
+              className="rounded-full border border-gray-300 px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Next
+            </button>
 
           </div>
         </div>
