@@ -15,45 +15,63 @@ export default function ShopPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const [selectedCategory, setSelectedCategory] = useState("All");
-const [selectedBrand, setSelectedBrand] = useState("All");
-const [selectedStock, setSelectedStock] = useState("All");
+  const [selectedBrand, setSelectedBrand] = useState("All");
+  const [selectedPrice, setSelectedPrice] = useState("All");
 
   const productsPerPage = 8;
 
-const filteredProducts = products.filter((product) => {
-  const matchesSearch = product.name
-    .toLowerCase()
-    .includes(searchQuery.toLowerCase());
-
-  const matchesCategory =
-    selectedCategory === "All" ||
-    product.category
+  // Search + Filters
+  const filteredProducts = products.filter((product) => {
+    const matchesSearch = product.name
       .toLowerCase()
-      .includes(selectedCategory.toLowerCase());
+      .includes(searchQuery.toLowerCase());
 
-  const matchesBrand =
-    selectedBrand === "All" ||
-    product.brand === selectedBrand;
+    const matchesCategory =
+      selectedCategory === "All" ||
+      product.category
+        .toLowerCase()
+        .includes(selectedCategory.toLowerCase());
 
-  const matchesStock =
-    selectedStock === "All" ||
-    product.stock === selectedStock;
+    const matchesBrand =
+      selectedBrand === "All" ||
+      product.brand === selectedBrand;
 
-  return matchesSearch && matchesCategory && matchesBrand && matchesStock;
-});
+    const price = Number(
+      String(product.price).replace(/[^0-9.]/g, "")
+    );
 
-const totalPages = Math.ceil(
-  filteredProducts.length / productsPerPage
-);
+    const matchesPrice =
+      selectedPrice === "All" ||
+      (selectedPrice === "Under 100" && price < 100) ||
+      (selectedPrice === "100 - 500" &&
+        price >= 100 &&
+        price <= 500) ||
+      (selectedPrice === "Above 500" && price > 500);
 
-const startIndex = (currentPage - 1) * productsPerPage;
+    return (
+      matchesSearch &&
+      matchesCategory &&
+      matchesBrand &&
+      matchesPrice
+    );
+  });
 
-const currentProducts = filteredProducts.slice(
-  startIndex,
-  startIndex + productsPerPage
-);
+  // Pagination
+  const totalPages = Math.ceil(
+    filteredProducts.length / productsPerPage
+  );
 
-  const handleWishlist = (productId: string, productName: string) => {
+  const startIndex = (currentPage - 1) * productsPerPage;
+
+  const currentProducts = filteredProducts.slice(
+    startIndex,
+    startIndex + productsPerPage
+  );
+
+  const handleWishlist = (
+    productId: string,
+    productName: string
+  ) => {
     const alreadyAdded = isWishlisted(productId);
 
     toggleWishlist(productId);
@@ -89,68 +107,79 @@ const currentProducts = filteredProducts.slice(
               Explore all our products and find something you love
             </p>
 
+            {/* Search */}
             <div className="mt-5 max-w-md">
-  <input
-    type="text"
-    value={searchQuery}
-    onChange={(e) => {
-      setSearchQuery(e.target.value);
-      setCurrentPage(1);
-    }}
-    placeholder="Search products..."
-    className="w-full rounded-full border border-gray-300 px-5 py-3 text-sm outline-none transition focus:border-[#155e4a]"
-  />
-</div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+                placeholder="Search products..."
+                className="w-full rounded-full border border-gray-300 px-5 py-3 text-sm outline-none transition focus:border-[#155e4a]"
+              />
+            </div>
 
-<div className="mt-4 flex flex-wrap gap-3">
+            {/* Filters */}
+            <div className="mt-5 flex flex-wrap gap-3">
 
-  {/* Category Filter */}
-  <select
-    value={selectedCategory}
-    onChange={(e) => {
-      setSelectedCategory(e.target.value);
-      setCurrentPage(1);
-    }}
-    className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm outline-none focus:border-[#155e4a]"
-  >
-    <option value="All">All Categories</option>
-    <option value="gadget">Gadget</option>
-    <option value="Appliances">Appliances</option>
-    <option value="Refrigerators">Refrigerators</option>
-    <option value="Others">Others</option>
-  </select>
+              {/* Category */}
+              <select
+                value={selectedCategory}
+                onChange={(e) => {
+                  setSelectedCategory(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="rounded-full border border-gray-300 bg-white px-5 py-2.5 text-sm outline-none focus:border-[#155e4a]"
+              >
+                <option value="All">All Categories</option>
+                <option value="Gadget">Gadget</option>
+                <option value="Appliances">Appliances</option>
+                <option value="Refrigerators">
+                  Refrigerators
+                </option>
+                <option value="Others">Others</option>
+              </select>
 
-  {/* Brand Filter */}
-  <select
-    value={selectedBrand}
-    onChange={(e) => {
-      setSelectedBrand(e.target.value);
-      setCurrentPage(1);
-    }}
-    className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm outline-none focus:border-[#155e4a]"
-  >
-    <option value="All">All Brands</option>
-    <option value="The Apple Limited">The Apple Limited</option>
-    <option value="Sony Limited">Sony Limited</option>
-    <option value="Hi-Tech Limited">Hi-Tech Limited</option>
-    <option value="The Hitachi Limited">The Hitachi Limited</option>
-    <option value="Huawei Company">Huawei Company</option>
-  </select>
+              {/* Brand */}
+              <select
+                value={selectedBrand}
+                onChange={(e) => {
+                  setSelectedBrand(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="rounded-full border border-gray-300 bg-white px-5 py-2.5 text-sm outline-none focus:border-[#155e4a]"
+              >
+                <option value="All">All Brands</option>
 
-  {/* Stock Filter */}
-  <select
-    value={selectedStock}
-    onChange={(e) => {
-      setSelectedStock(e.target.value);
-      setCurrentPage(1);
-    }}
-    className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm outline-none focus:border-[#155e4a]"
-  >
-    <option value="All">All Stock</option>
-    <option value="Available">Available</option>
-  </select>
+                {[
+                  ...new Set(
+                    products.map((product) => product.brand)
+                  ),
+                ].map((brand) => (
+                  <option key={brand} value={brand}>
+                    {brand}
+                  </option>
+                ))}
+              </select>
 
-</div>
+              {/* Price */}
+              <select
+                value={selectedPrice}
+                onChange={(e) => {
+                  setSelectedPrice(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="rounded-full border border-gray-300 bg-white px-5 py-2.5 text-sm outline-none focus:border-[#155e4a]"
+              >
+                <option value="All">All Prices</option>
+                <option value="Under 100">Under 100</option>
+                <option value="100 - 500">100 - 500</option>
+                <option value="Above 500">Above 500</option>
+              </select>
+
+            </div>
           </div>
 
           {/* Products */}
@@ -177,7 +206,10 @@ const currentProducts = filteredProducts.slice(
                     <button
                       type="button"
                       onClick={() =>
-                        handleWishlist(product.id, product.name)
+                        handleWishlist(
+                          product.id,
+                          product.name
+                        )
                       }
                       className={`absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full transition-all duration-300 ${
                         wishlisted
@@ -214,7 +246,9 @@ const currentProducts = filteredProducts.slice(
                       {product.category}
                     </p>
 
-                    <Link href={`/products/${product.id}`}>
+                    <Link
+                      href={`/products/${product.id}`}
+                    >
                       <h2 className="mt-1 truncate text-sm font-semibold text-black hover:text-[#155e4a]">
                         {product.name}
                       </h2>
@@ -249,46 +283,65 @@ const currentProducts = filteredProducts.slice(
             })}
           </div>
 
+          {/* No Results */}
+          {currentProducts.length === 0 && (
+            <div className="py-16 text-center">
+              <p className="text-lg font-semibold text-gray-700">
+                No products found.
+              </p>
+              <p className="mt-2 text-sm text-gray-400">
+                Try changing your search or filters.
+              </p>
+            </div>
+          )}
+
           {/* Pagination */}
-          <div className="mt-10 flex items-center justify-center gap-2">
+          {totalPages > 0 && (
+            <div className="mt-10 flex items-center justify-center gap-2">
 
-            <button
-              type="button"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage((page) => page - 1)}
-              className="rounded-full border border-gray-300 px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Previous
-            </button>
-
-            {Array.from(
-              { length: totalPages },
-              (_, index) => index + 1
-            ).map((page) => (
               <button
-                key={page}
                 type="button"
-                onClick={() => setCurrentPage(page)}
-                className={`h-10 w-10 rounded-full text-sm font-semibold ${
-                  currentPage === page
-                    ? "bg-[#155e4a] text-white"
-                    : "border border-gray-300 bg-white text-gray-700"
-                }`}
+                disabled={currentPage === 1}
+                onClick={() =>
+                  setCurrentPage((page) => page - 1)
+                }
+                className="rounded-full border border-gray-300 px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-40"
               >
-                {page}
+                Previous
               </button>
-            ))}
 
-            <button
-              type="button"
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage((page) => page + 1)}
-              className="rounded-full border border-gray-300 px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Next
-            </button>
+              {Array.from(
+                { length: totalPages },
+                (_, index) => index + 1
+              ).map((page) => (
+                <button
+                  key={page}
+                  type="button"
+                  onClick={() => setCurrentPage(page)}
+                  className={`h-10 w-10 rounded-full text-sm font-semibold ${
+                    currentPage === page
+                      ? "bg-[#155e4a] text-white"
+                      : "border border-gray-300 bg-white text-gray-700"
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
 
-          </div>
+              <button
+                type="button"
+                disabled={currentPage === totalPages}
+                onClick={() =>
+                  setCurrentPage((page) => page + 1)
+                }
+                className="rounded-full border border-gray-300 px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Next
+              </button>
+
+            </div>
+          )}
+
         </div>
       </main>
 
