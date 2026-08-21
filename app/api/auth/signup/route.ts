@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
+import { Resend } from "resend";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 
@@ -17,9 +18,17 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!process.env.RESEND_API_KEY) {
+      return NextResponse.json(
+        { message: "RESEND_API_KEY is not configured." },
+        { status: 500 }
+      );
+    }
+
     await connectDB();
 
     const normalizedEmail = email.trim().toLowerCase();
+    const trimmedName = name.trim();
 
     const existingUser = await User.findOne({
       email: normalizedEmail,
@@ -34,38 +43,72 @@ export async function POST(request: Request) {
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const verificationCode = crypto
+      .randomInt(100000, 1000000)
+      .toString();
 
-    const verificationTokenExpires = new Date(
-      Date.now() + 24 * 60 * 60 * 1000
+    const verificationCodeExpires = new Date(
+      Date.now() + 10 * 60 * 1000
     );
 
     const user = await User.create({
-      name: name.trim(),
+      name: trimmedName,
       email: normalizedEmail,
       password: hashedPassword,
       isVerified: false,
-      verificationToken,
-      verificationTokenExpires,
+      verificationCode,
+      verificationCodeExpires,
     });
 
-  const verificationUrl = `http://localhost:3000/api/auth/verify-email?token=${verificationToken}`;
+    const resend = new Resend(process.env.RESEND_API_KEY);
 
-return NextResponse.json(
-  {
-    message: "Account created successfully. Please verify your email.",
-    verificationUrl,
-    user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      isVerified: user.isVerified,
-    },
-  },
-  { status: 201 }
-);
+    const { error: emailError } = await resend.emails.send({
+      from: "Ecommerce Store <onboarding@resend.dev>",
+      to: [normalizedEmail],
+      subject: "Your verification code",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
+          <h2>Verify your email</h2>
 
+          <p>Hello ${trimmedName},</p>
 
+          <p>Your 6-digit verification code is:</p>
+
+          <div style="
+            font-size: 32px;
+            font-weight: bold;
+            letter-spacing: 8px;
+            margin: 24px 0;
+          ">
+            ${verificationCode}
+          </div>
+
+          <p>This code will expire in 10 minutes.</p>
+        </div>
+      `,
+    });
+
+    if (emailError) {
+      console.error("Resend email error:", emailError);
+
+      await User.findByIdAndDelete(user._id);
+
+      return NextResponse.json(
+        {
+          message:
+            "Account could not be created because verification email failed.",
+        },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        message:
+          "Account created successfully. Please check your email for the verification code.",
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Signup error:", error);
 

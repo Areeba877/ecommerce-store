@@ -2,52 +2,52 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 
-export async function GET(request: Request) {
+export async function POST(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const token = searchParams.get("token");
+    const { email, code } = await request.json();
 
-    if (!token) {
+    if (!email || !code) {
       return NextResponse.json(
-        { message: "Verification token is missing." },
+        { message: "Email and verification code are required." },
         { status: 400 }
       );
     }
 
     await connectDB();
 
+    const normalizedEmail = email.trim().toLowerCase();
+
     const user = await User.findOne({
-      verificationToken: token,
-      verificationTokenExpires: { $gt: new Date() },
+      email: normalizedEmail,
+      verificationCode: code,
+      verificationCodeExpires: { $gt: new Date() },
     });
 
     if (!user) {
       return NextResponse.json(
-        { message: "Invalid or expired verification token." },
+        { message: "Invalid or expired verification code." },
         { status: 400 }
       );
     }
 
     user.isVerified = true;
-    user.verificationToken = undefined;
-    user.verificationTokenExpires = undefined;
+    user.verificationCode = undefined;
+    user.verificationCodeExpires = undefined;
 
     await user.save();
 
-  return NextResponse.json(
-  {
-    message: "Email verified successfully. You can now log in.",
-  },
-  { status: 200 }
-);
-
-
+    return NextResponse.json(
+      {
+        message: "Email verified successfully.",
+      },
+      { status: 200 }
+    );
   } catch (error) {
-    console.error("Email verification error:", error);
+    console.error("Verification error:", error);
 
- return NextResponse.redirect(
-  new URL("/verify-email?success=true", request.url)
-);
-
+    return NextResponse.json(
+      { message: "Something went wrong during verification." },
+      { status: 500 }
+    );
   }
 }
