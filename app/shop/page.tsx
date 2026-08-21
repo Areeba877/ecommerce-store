@@ -14,11 +14,33 @@ export default function ShopPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
 
+  const [selectedCategory, setSelectedCategory] = useState("All");
+const [selectedBrand, setSelectedBrand] = useState("All");
+const [selectedStock, setSelectedStock] = useState("All");
+
   const productsPerPage = 8;
 
-const filteredProducts = products.filter((product) =>
-  product.name.toLowerCase().includes(searchQuery.toLowerCase())
-);
+const filteredProducts = products.filter((product) => {
+  const matchesSearch = product.name
+    .toLowerCase()
+    .includes(searchQuery.toLowerCase());
+
+  const matchesCategory =
+    selectedCategory === "All" ||
+    product.category
+      .toLowerCase()
+      .includes(selectedCategory.toLowerCase());
+
+  const matchesBrand =
+    selectedBrand === "All" ||
+    product.brand === selectedBrand;
+
+  const matchesStock =
+    selectedStock === "All" ||
+    product.stock === selectedStock;
+
+  return matchesSearch && matchesCategory && matchesBrand && matchesStock;
+});
 
 const totalPages = Math.ceil(
   filteredProducts.length / productsPerPage
@@ -78,6 +100,56 @@ const currentProducts = filteredProducts.slice(
     placeholder="Search products..."
     className="w-full rounded-full border border-gray-300 px-5 py-3 text-sm outline-none transition focus:border-[#155e4a]"
   />
+</div>
+
+<div className="mt-4 flex flex-wrap gap-3">
+
+  {/* Category Filter */}
+  <select
+    value={selectedCategory}
+    onChange={(e) => {
+      setSelectedCategory(e.target.value);
+      setCurrentPage(1);
+    }}
+    className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm outline-none focus:border-[#155e4a]"
+  >
+    <option value="All">All Categories</option>
+    <option value="gadget">Gadget</option>
+    <option value="Appliances">Appliances</option>
+    <option value="Refrigerators">Refrigerators</option>
+    <option value="Others">Others</option>
+  </select>
+
+  {/* Brand Filter */}
+  <select
+    value={selectedBrand}
+    onChange={(e) => {
+      setSelectedBrand(e.target.value);
+      setCurrentPage(1);
+    }}
+    className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm outline-none focus:border-[#155e4a]"
+  >
+    <option value="All">All Brands</option>
+    <option value="The Apple Limited">The Apple Limited</option>
+    <option value="Sony Limited">Sony Limited</option>
+    <option value="Hi-Tech Limited">Hi-Tech Limited</option>
+    <option value="The Hitachi Limited">The Hitachi Limited</option>
+    <option value="Huawei Company">Huawei Company</option>
+  </select>
+
+  {/* Stock Filter */}
+  <select
+    value={selectedStock}
+    onChange={(e) => {
+      setSelectedStock(e.target.value);
+      setCurrentPage(1);
+    }}
+    className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm outline-none focus:border-[#155e4a]"
+  >
+    <option value="All">All Stock</option>
+    <option value="Available">Available</option>
+  </select>
+
 </div>
           </div>
 
