@@ -6,9 +6,11 @@ import Footer from "@/components/Footer";
 import { products } from "@/components/products";
 import { useWishlist } from "../WishlistContext";
 import { useState } from "react";
+import { useCart } from "@/context/CartContext";
 
 export default function ShopPage() {
   const { wishlist, toggleWishlist, isWishlisted } = useWishlist();
+  const { addToCart } = useCart();
 
   const [message, setMessage] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -272,11 +274,19 @@ export default function ShopPage() {
 
                     {/* Add to Cart */}
                     <button
-                      type="button"
-                      className="mt-4 w-full rounded-full bg-[#155e4a] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0f4939]"
-                    >
-                      Add to Cart
-                    </button>
+  type="button"
+  onClick={() => {
+    addToCart(product.id);
+    setMessage(`${product.name} added to cart!`);
+
+    setTimeout(() => {
+      setMessage("");
+    }, 2500);
+  }}
+  className="mt-4 w-full rounded-full bg-[#155e4a] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0f4939]"
+>
+  Add to Cart
+</button>
                   </div>
                 </div>
               );

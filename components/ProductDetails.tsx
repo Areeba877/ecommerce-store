@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Truck, ShieldCheck, RotateCcw } from "lucide-react";
 import { useWishlist } from "../app/WishlistContext";
+import { useCart } from "@/context/CartContext";
 
 type ProductDetailsProps = {
   product: {
@@ -28,14 +29,19 @@ export default function ProductDetails({
   const [showCharacteristics, setShowCharacteristics] = useState(false);
 
   const { toggleWishlist, isWishlisted } = useWishlist();
+  const { addToCart } = useCart();
 
   const price = Number(
     product.price.replace("$", "").replace(",", "")
   );
 
-  const handleAddToCart = () => {
-    alert(`${quantity} × ${product.name} added to cart!`);
-  };
+const handleAddToCart = () => {
+  for (let i = 0; i < quantity; i++) {
+    addToCart(product.id);
+  }
+
+  alert(`${product.name} added to cart!`);
+};
 
   return (
     <main className="min-h-screen bg-white px-4 py-8 sm:px-6 lg:px-8">
