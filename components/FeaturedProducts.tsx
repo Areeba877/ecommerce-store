@@ -3,6 +3,7 @@
 import { products } from "@/components/products";
 import Link from "next/link";
 import { useWishlist } from "@/app/WishlistContext";
+import { useCart } from "@/context/CartContext";
 
 type FeaturedProductsProps = {
   selectedCategory: string;
@@ -12,6 +13,7 @@ export default function FeaturedProducts({
   selectedCategory,
 }: FeaturedProductsProps) {
   const { isWishlisted, toggleWishlist } = useWishlist();
+  const { addToCart } = useCart();
 
   const filteredProducts = products.filter((product) =>
     product.category
@@ -102,12 +104,16 @@ export default function FeaturedProducts({
                 </div>
 
                 {/* Add to Cart */}
-                <button
-                  type="button"
-                  className="mt-4 w-full rounded-full bg-[#155e4a] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f4939]"
-                >
-                  Add to Cart
-                </button>
+ <button
+  type="button"
+  onClick={() => {
+    addToCart(product.id);
+    alert(`${product.name} added to cart!`);
+  }}
+  className="mt-4 w-full rounded-full bg-[#155e4a] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f4939]"
+>
+  Add to Cart
+</button>
               </div>
             </div>
           ))}

@@ -3,9 +3,11 @@
 import { products } from "@/components/products";
 import Link from "next/link";
 import { useWishlist } from "@/app/WishlistContext";
+import { useCart } from "@/context/CartContext";
 
 export default function BestSellers() {
   const { isWishlisted, toggleWishlist } = useWishlist();
+  const { addToCart } = useCart();
 
   // Best Sellers ke liye first 5 products
   const bestSellers = products.slice(0, 5);
@@ -107,12 +109,16 @@ export default function BestSellers() {
                 </div>
 
                 {/* Add to Cart */}
-                <button
-                  type="button"
-                  className="mt-4 w-full rounded-full bg-[#155e4a] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f4939]"
-                >
-                  Add to Cart
-                </button>
+ <button
+  type="button"
+  onClick={() => {
+    addToCart(product.id);
+    alert(`${product.name} added to cart!`);
+  }}
+  className="mt-4 w-full rounded-full bg-[#155e4a] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f4939]"
+>
+  Add to Cart
+</button>
               </div>
             </div>
           ))}
