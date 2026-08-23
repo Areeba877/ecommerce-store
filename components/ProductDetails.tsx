@@ -1,10 +1,10 @@
 "use client";
-
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Truck, ShieldCheck, RotateCcw } from "lucide-react";
 import { useWishlist } from "../app/WishlistContext";
 import { useCart } from "@/context/CartContext";
-
+import Link from "next/link";
 type ProductDetailsProps = {
   product: {
     id: string;
@@ -30,6 +30,7 @@ export default function ProductDetails({
 
   const { toggleWishlist, isWishlisted } = useWishlist();
   const { addToCart } = useCart();
+  const router = useRouter();
 
   const price = Number(
     product.price.replace("$", "").replace(",", "")
@@ -40,7 +41,7 @@ const handleAddToCart = () => {
     addToCart(product.id);
   }
 
-  alert(`${product.name} added to cart!`);
+  router.push("/cart");
 };
 
   return (
