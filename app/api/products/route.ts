@@ -2,12 +2,70 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Product from "@/models/Product";
 
-// GET all products
-export async function GET() {
+// GET all products + search + filters
+export async function GET(request: Request) {
   try {
     await connectDB();
 
-    const products = await Product.find().sort({ createdAt: -1 });
+    const { searchParams } = new URL(request.url);
+
+    const search = searchParams.get("search");
+    const category = searchParams.get("category");
+    const brand = searchParams.get("brand");
+    const collection = searchParams.get("collection");
+    const type = searchParams.get("type");
+    const stock = searchParams.get("stock");
+    const minPrice = searchParams.get("minPrice");
+    const maxPrice = searchParams.get("maxPrice");
+
+    const filter: Record<string, unknown> = {};
+
+    // Search
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { category: { $regex: search, $options: "i" } },
+        { brand: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Exact filters
+    if (category) {
+      filter.category = { $regex: category, $options: "i" };
+    }
+
+    if (brand) {
+      filter.brand = { $regex: brand, $options: "i" };
+    }
+
+    if (collection) {
+      filter.collection = collection;
+    }
+
+    if (type) {
+      filter.type = type;
+    }
+
+    if (stock) {
+      filter.stock = stock;
+    }
+
+    // Price filter
+    if (minPrice || maxPrice) {
+      const priceFilter: Record<string, number> = {};
+
+      if (minPrice) {
+        priceFilter.$gte = Number(minPrice);
+      }
+
+      if (maxPrice) {
+        priceFilter.$lte = Number(maxPrice);
+      }
+
+      filter.price = priceFilter;
+    }
+
+    const products = await Product.find(filter).sort({ createdAt: -1 });
 
     return NextResponse.json(products, { status: 200 });
   } catch (error) {
@@ -15,37 +73,6 @@ export async function GET() {
 
     return NextResponse.json(
       { message: "Failed to fetch products" },
-      { status: 500 }
-    );
-  }
-}
-
-// POST create product
-export async function POST(request: Request) {
-  try {
-    await connectDB();
-
-    const body = await request.json();
-
-    const product = await Product.create({
-      name: body.name,
-      category: body.category,
-      price: body.price,
-      oldPrice: body.oldPrice,
-      image: body.image,
-      badge: body.badge,
-      brand: body.brand,
-      collection: body.collection,
-      type: body.type,
-      stock: body.stock,
-    });
-
-    return NextResponse.json(product, { status: 201 });
-  } catch (error) {
-    console.error("POST product error:", error);
-
-    return NextResponse.json(
-      { message: "Failed to create product" },
       { status: 500 }
     );
   }
