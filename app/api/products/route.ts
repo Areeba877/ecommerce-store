@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Product from "@/models/Product";
 
-// GET all products + search + filters
+// GET products + search + filters + pagination
 export async function GET(request: Request) {
   try {
     await connectDB();
@@ -15,8 +15,12 @@ export async function GET(request: Request) {
     const collection = searchParams.get("collection");
     const type = searchParams.get("type");
     const stock = searchParams.get("stock");
+
     const minPrice = searchParams.get("minPrice");
     const maxPrice = searchParams.get("maxPrice");
+
+    const page = Math.max(Number(searchParams.get("page")) || 1, 1);
+    const limit = Math.max(Number(searchParams.get("limit")) || 6, 1);
 
     const filter: Record<string, unknown> = {};
 
@@ -29,15 +33,17 @@ export async function GET(request: Request) {
       ];
     }
 
-    // Exact filters
+    // Category
     if (category) {
       filter.category = { $regex: category, $options: "i" };
     }
 
+    // Brand
     if (brand) {
       filter.brand = { $regex: brand, $options: "i" };
     }
 
+    // Other filters
     if (collection) {
       filter.collection = collection;
     }
@@ -65,9 +71,33 @@ export async function GET(request: Request) {
       filter.price = priceFilter;
     }
 
-    const products = await Product.find(filter).sort({ createdAt: -1 });
+    // Total products matching filters
+    const totalProducts = await Product.countDocuments(filter);
 
-    return NextResponse.json(products, { status: 200 });
+    // Pagination
+    const skip = (page - 1) * limit;
+
+    const products = await Product.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalPages = Math.ceil(totalProducts / limit);
+
+    return NextResponse.json(
+      {
+        products,
+        pagination: {
+          currentPage: page,
+          limit,
+          totalProducts,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
+        },
+      },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("GET products error:", error);
 
