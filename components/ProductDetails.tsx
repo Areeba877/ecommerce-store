@@ -1,20 +1,20 @@
 "use client";
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Truck, ShieldCheck, RotateCcw } from "lucide-react";
 import { useWishlist } from "../app/WishlistContext";
 import { useCart } from "@/context/CartContext";
-import Link from "next/link";
+
 type ProductDetailsProps = {
   product: {
-    id: string;
+    _id: string;
     image: string;
     category: string;
     name: string;
-    price: string;
-    oldPrice: string;
+    price: number;
+    oldPrice?: number;
     badge?: string;
-
     brand?: string;
     collection?: string;
     type?: string;
@@ -32,17 +32,17 @@ export default function ProductDetails({
   const { addToCart } = useCart();
   const router = useRouter();
 
-  const price = Number(
-    product.price.replace("$", "").replace(",", "")
-  );
+  const price = product.price;
 
-const handleAddToCart = () => {
-  for (let i = 0; i < quantity; i++) {
-    addToCart(product.id);
-  }
+  const handleAddToCart = async () => {
+    try {
+      await addToCart(product._id, quantity);
 
-  router.push("/cart");
-};
+      router.push("/cart");
+    } catch (error) {
+      console.error("Add to cart error:", error);
+    }
+  };
 
   return (
     <main className="min-h-screen bg-white px-4 py-8 sm:px-6 lg:px-8">
@@ -115,12 +115,14 @@ const handleAddToCart = () => {
 
               <div className="flex items-center gap-3">
                 <span className="text-3xl font-bold text-gray-900">
-                  {product.price}
+                  ${product.price.toLocaleString()}
                 </span>
 
-                <span className="text-lg text-gray-400 line-through">
-                  {product.oldPrice}
-                </span>
+                {product.oldPrice !== undefined && (
+                  <span className="text-lg text-gray-400 line-through">
+                    ${product.oldPrice.toLocaleString()}
+                  </span>
+                )}
               </div>
 
               <p
@@ -181,20 +183,22 @@ const handleAddToCart = () => {
               {/* Wishlist */}
               <button
                 type="button"
-                onClick={() => toggleWishlist(product.id)}
+                onClick={() =>
+                  toggleWishlist(product._id)
+                }
                 aria-label={
-                  isWishlisted(product.id)
+                  isWishlisted(product._id)
                     ? "Remove from wishlist"
                     : "Add to wishlist"
                 }
                 className={`flex h-14 w-14 items-center justify-center rounded-full border transition ${
-                  isWishlisted(product.id)
+                  isWishlisted(product._id)
                     ? "border-[#155e4a] text-[#155e4a]"
                     : "border-green-300 text-gray-700 hover:border-[#155e4a] hover:text-[#155e4a]"
                 }`}
               >
                 <span className="text-3xl">
-                  {isWishlisted(product.id) ? "♥" : "♡"}
+                  {isWishlisted(product._id) ? "♥" : "♡"}
                 </span>
               </button>
 
@@ -238,7 +242,9 @@ const handleAddToCart = () => {
               <button
                 type="button"
                 onClick={() =>
-                  setShowCharacteristics(!showCharacteristics)
+                  setShowCharacteristics(
+                    !showCharacteristics
+                  )
                 }
                 className="flex w-full items-center justify-between text-left"
               >
