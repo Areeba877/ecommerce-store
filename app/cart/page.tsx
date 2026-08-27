@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { products } from "@/components/products";
 import { useCart } from "@/context/CartContext";
 
 export default function CartPage() {
   const {
     cartItems,
+    loading,
     removeFromCart,
     increaseQuantity,
     decreaseQuantity,
@@ -14,6 +14,22 @@ export default function CartPage() {
   } = useCart();
 
   const total = getCartTotal();
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-white px-5 py-10 sm:px-8 lg:px-10">
+        <div className="mx-auto max-w-6xl">
+          <h1 className="text-3xl font-bold text-gray-900">
+            Shopping Cart
+          </h1>
+
+          <div className="mt-10 rounded-2xl border border-gray-200 p-10 text-center">
+            <p className="text-gray-500">Loading cart...</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-white px-5 py-10 sm:px-8 lg:px-10">
@@ -44,17 +60,7 @@ export default function CartPage() {
             {/* Cart Items */}
             <div className="space-y-4">
               {cartItems.map((item) => {
-                const product = products.find(
-                  (product) => product.id === item.productId
-                );
-
-                if (!product) {
-                  return null;
-                }
-
-                const price = Number(
-                  product.price.replace("$", "").replace(",", "")
-                );
+                const product = item.product;
 
                 return (
                   <div
@@ -63,7 +69,7 @@ export default function CartPage() {
                   >
                     {/* Image */}
                     <Link
-                      href={`/products/${product.id}`}
+                      href={`/products/${product._id}`}
                       className="flex h-32 w-32 shrink-0 items-center justify-center rounded-xl bg-gray-50"
                     >
                       <img
@@ -79,14 +85,17 @@ export default function CartPage() {
                         {product.category}
                       </p>
 
-                      <Link href={`/products/${product.id}`}>
+                      <Link href={`/products/${product._id}`}>
                         <h2 className="mt-1 font-semibold text-gray-900 hover:text-[#155e4a]">
                           {product.name}
                         </h2>
                       </Link>
 
                       <p className="mt-2 font-bold text-gray-900">
-                        {product.price}
+                        ${product.price.toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                       </p>
 
                       {/* Quantity */}
@@ -95,7 +104,7 @@ export default function CartPage() {
                           <button
                             type="button"
                             onClick={() =>
-                              decreaseQuantity(product.id)
+                              decreaseQuantity(product._id)
                             }
                             className="px-4 py-2 text-lg text-gray-600"
                           >
@@ -109,7 +118,7 @@ export default function CartPage() {
                           <button
                             type="button"
                             onClick={() =>
-                              increaseQuantity(product.id)
+                              increaseQuantity(product._id)
                             }
                             className="px-4 py-2 text-lg text-gray-600"
                           >
@@ -120,7 +129,7 @@ export default function CartPage() {
                         <button
                           type="button"
                           onClick={() =>
-                            removeFromCart(product.id)
+                            removeFromCart(product._id)
                           }
                           className="text-sm font-medium text-red-500 hover:underline"
                         >
@@ -136,13 +145,13 @@ export default function CartPage() {
                       </p>
 
                       <p className="mt-1 text-lg font-bold text-gray-900">
-                        ${(price * item.quantity).toLocaleString(
-                          "en-US",
-                          {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          }
-                        )}
+                        $
+                        {(
+                          product.price * item.quantity
+                        ).toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                       </p>
                     </div>
                   </div>
@@ -192,12 +201,12 @@ export default function CartPage() {
                 </span>
               </div>
 
-             <Link
-  href="/checkout"
-  className="mt-6 block w-full rounded-full bg-[#155e4a] px-5 py-3 text-center font-semibold text-white transition hover:bg-[#0f4939]"
->
-  Proceed to Checkout
-</Link>
+              <Link
+                href="/checkout"
+                className="mt-6 block w-full rounded-full bg-[#155e4a] px-5 py-3 text-center font-semibold text-white transition hover:bg-[#0f4939]"
+              >
+                Proceed to Checkout
+              </Link>
 
               <Link
                 href="/shop"
