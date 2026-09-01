@@ -65,9 +65,9 @@ export default function CategoryCards() {
   return (
     <section className="bg-white px-4 py-10">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-10 flex items-center justify-between">
+        <div className="mt-10 mb-10 flex items-center justify-between">
         <div>
-  <h2 className="text-4xl font-bold text-gray-900">
+  <h2 className="text-5xl font-bold text-gray-900">
     Shop by Category
   </h2>
 

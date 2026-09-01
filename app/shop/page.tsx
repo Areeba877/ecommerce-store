@@ -44,6 +44,7 @@ export default function ShopPage() {
   const [error, setError] = useState("");
 
   const [message, setMessage] = useState("");
+  const [addedProductId, setAddedProductId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -193,31 +194,23 @@ const response = await fetch("/api/products?limit=100");
     }, 2500);
   };
 
-  const handleAddToCart = (
-    productId: string,
-    productName: string
-  ) => {
-    // IMPORTANT:
-    // productId is now MongoDB _id
-    addToCart(productId);
+const handleAddToCart = async (productId: string) => {
+  try {
+    await addToCart(productId);
 
-    setMessage(`${productName} added to cart!`);
+    setAddedProductId(productId);
 
     setTimeout(() => {
-      setMessage("");
-    }, 2500);
-  };
+      setAddedProductId(null);
+    }, 2000);
+  } catch (error) {
+    console.error("Add to cart error:", error);
+  }
+};
 
   return (
     <>
       <Navbar />
-
-      {/* Success Message */}
-      {message && (
-        <div className="fixed right-5 top-24 z-50 rounded-lg bg-[#155e4a] px-5 py-3 text-sm font-semibold text-white shadow-lg">
-          {message}
-        </div>
-      )}
 
       <main className="min-h-screen bg-white px-5 pb-12 pt-2 sm:px-8 lg:px-10">
         <div className="mx-auto max-w-7xl">
@@ -411,18 +404,19 @@ const response = await fetch("/api/products?limit=100");
                       </div>
 
                       {/* Add to Cart */}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleAddToCart(
-                            product.id,
-                            product.name
-                          )
-                        }
-                        className="mt-4 w-full rounded-full bg-[#155e4a] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0f4939]"
-                      >
-                        Add to Cart
-                      </button>
+                    <button
+  type="button"
+  onClick={() => handleAddToCart(product.id)}
+  className={`mt-4 w-full rounded-full px-4 py-2 text-sm font-semibold text-white transition ${
+    addedProductId === product.id
+      ? "bg-[#0f4939]"
+      : "bg-[#155e4a] hover:bg-[#0f4939]"
+  }`}
+>
+  {addedProductId === product.id
+    ? "✓ Product Added"
+    : "Add to Cart"}
+</button>
                     </div>
                   </div>
                 );
