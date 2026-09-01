@@ -51,7 +51,7 @@ export default function ShopPage() {
   const [selectedBrand, setSelectedBrand] = useState("All");
   const [selectedPrice, setSelectedPrice] = useState("All");
 
-  const productsPerPage = 8;
+  const productsPerPage = 10;
 
   // Fetch products from MongoDB
   useEffect(() => {
@@ -60,7 +60,7 @@ export default function ShopPage() {
         setLoading(true);
         setError("");
 
-        const response = await fetch("/api/products");
+const response = await fetch("/api/products?limit=100");
 
         if (!response.ok) {
           throw new Error("Failed to fetch products");
@@ -254,9 +254,15 @@ export default function ShopPage() {
   }}
   className="rounded-full border border-gray-300 bg-white px-5 py-2.5 text-sm outline-none focus:border-[#155e4a]"
 >
-  <option value="All">All Categories</option>
-  <option value="Clothes">Clothes</option>
-  <option value="Devices">Devices</option>
+ <option value="All">All Categories</option>
+<option value="Clothes">Clothes</option>
+<option value="Beauty">Beauty</option>
+<option value="Shoes">Shoes</option>
+<option value="Bags">Bags</option>
+<option value="Devices">Devices</option>
+<option value="Electronics">Electronics</option>
+
+
 </select>
 
               {/* Brand */}
@@ -317,8 +323,7 @@ export default function ShopPage() {
 
           {/* Products */}
           {!loading && !error && (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-              {currentProducts.map((product) => {
+<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">              {currentProducts.map((product) => {
                 const wishlisted = wishlist.includes(product.id);
 
                 return (
@@ -327,7 +332,7 @@ export default function ShopPage() {
                     className="overflow-hidden rounded-xl border border-gray-200 bg-white transition duration-300 hover:-translate-y-1 hover:shadow-lg"
                   >
                     {/* Product Image */}
-                    <div className="relative flex h-52 items-center justify-center bg-gray-50 p-2">
+<div className="relative flex h-32 items-center justify-center bg-gray-50 p-2">
 
                       {/* Badge */}
                       {product.badge && (
@@ -374,10 +379,9 @@ export default function ShopPage() {
                     </div>
 
                     {/* Product Details */}
-                    <div className="p-4">
+                    <div className="p-3">
 
-                      <p className="text-xs text-gray-400">
-                        {product.category}
+<p className="text-[11px] text-gray-400">                        {product.category}
                       </p>
 
                       <Link
