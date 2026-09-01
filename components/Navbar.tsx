@@ -6,10 +6,11 @@ import { usePathname } from "next/navigation";
 import { useWishlist } from "../app/WishlistContext";
 
 const navLinks = [
-  { name: "Home", href: "/" },
-  { name: "Shop", href: "/shop" },
-  { name: "Blog", href: "/blog" },
-  { name: "Best Offers", href: "/offers" },
+  { name: "Products", href: "/products" },
+  { name: "Categories", href: "/categories" },
+  { name: "Deals", href: "/#deals" },
+  { name: "Contact", href: "/contact" },
+  { name: "About", href: "/about" },
 ];
 
 function SearchIcon() {
