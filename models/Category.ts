@@ -5,7 +5,7 @@ export interface ICategory extends Document {
   slug: string;
   image?: string;
   description?: string;
-}
+parent?: string | null;}
 
 const CategorySchema = new Schema<ICategory>(
   {
@@ -29,6 +29,10 @@ const CategorySchema = new Schema<ICategory>(
       type: String,
       default: "",
     },
+    parent: {
+  type: String,
+  default: null,
+},
   },
   {
     timestamps: true,

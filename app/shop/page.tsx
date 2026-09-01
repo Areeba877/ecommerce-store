@@ -245,25 +245,19 @@ export default function ShopPage() {
             {/* Filters */}
             <div className="mt-5 flex flex-wrap gap-3">
 
-              {/* Category */}
-              <select
-                value={selectedCategory}
-                onChange={(e) => {
-                  setSelectedCategory(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="rounded-full border border-gray-300 bg-white px-5 py-2.5 text-sm outline-none focus:border-[#155e4a]"
-              >
-                <option value="All">All Categories</option>
-
-                {categories
-                  .filter((category) => category !== "All")
-                  .map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-              </select>
+   {/* Category */}
+<select
+  value={selectedCategory}
+  onChange={(e) => {
+    setSelectedCategory(e.target.value);
+    setCurrentPage(1);
+  }}
+  className="rounded-full border border-gray-300 bg-white px-5 py-2.5 text-sm outline-none focus:border-[#155e4a]"
+>
+  <option value="All">All Categories</option>
+  <option value="Clothes">Clothes</option>
+  <option value="Devices">Devices</option>
+</select>
 
               {/* Brand */}
               <select

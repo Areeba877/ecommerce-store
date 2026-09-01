@@ -107,3 +107,24 @@ export async function GET(request: Request) {
     );
   }
 }
+
+
+// POST create product
+export async function POST(request: Request) {
+  try {
+    await connectDB();
+
+    const body = await request.json();
+
+    const product = await Product.create(body);
+
+    return NextResponse.json(product, { status: 201 });
+  } catch (error) {
+    console.error("POST product error:", error);
+
+    return NextResponse.json(
+      { message: "Failed to create product" },
+      { status: 500 }
+    );
+  }
+}

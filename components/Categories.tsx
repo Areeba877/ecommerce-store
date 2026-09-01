@@ -1,8 +1,7 @@
 const categories = [
-  "Gadget",
-  "Appliances",
-  "Refrigerators",
-  "Others",
+  "Devices",
+  "Electronics",
+   "Clothes",
 ];
 
 type CategoriesProps = {

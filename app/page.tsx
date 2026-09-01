@@ -8,17 +8,19 @@ import Categories from "@/components/Categories";
 import FeaturedProducts from "@/components/FeaturedProducts";
 import BestOffers from "@/components/BestOffers";
 import BestSellers from "@/components/BestSellers";
+import CategoryCards from "@/components/CategoryCards";
 
 import Brands from "@/components/Brands";
 export default function Home() {
-  const [selectedCategory, setSelectedCategory] = useState("Gadget");
-
+const [selectedCategory, setSelectedCategory] = useState("Devices");
   return (
     <>
       <Navbar />
 
       <main className="min-h-screen bg-white">
         <Hero />
+
+        <CategoryCards />
 
         <Categories
           selectedCategory={selectedCategory}
