@@ -1,9 +1,10 @@
+import Link from "next/link";
 const categories = [
-  "Devices",
+  "Shoes",
+  "Beauty",
   "Electronics",
-   "Clothes",
+  "Clothes",
 ];
-
 type CategoriesProps = {
   selectedCategory: string;
   onCategoryChange: (category: string) => void;
@@ -36,9 +37,12 @@ export default function Categories({
           </div>
 
           {/* See All */}
-          <button className="hidden whitespace-nowrap rounded-full border border-gray-900 px-5 py-2 text-sm font-medium text-gray-900 transition hover:bg-gray-900 hover:text-white sm:block">
-            See all
-          </button>
+         <Link
+  href="/products"
+  className="hidden whitespace-nowrap rounded-full border border-gray-900 px-5 py-2 text-sm font-medium text-gray-900 transition hover:bg-gray-900 hover:text-white sm:block"
+>
+  See all
+</Link>
 
         </div>
       </div>
