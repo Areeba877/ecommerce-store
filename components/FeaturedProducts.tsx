@@ -20,7 +20,7 @@ type Product = {
 };
 
 type FeaturedProductsProps = {
-  selectedCategory: string;
+  selectedCategory?: string;
 };
 
 export default function FeaturedProducts({
@@ -30,11 +30,13 @@ export default function FeaturedProducts({
   const { addToCart } = useCart();
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [addedProductId, setAddedProductId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-const response = await fetch("/api/products?page=1&limit=100");
+        const response = await fetch("/api/products?page=1&limit=100");
+
         if (!response.ok) {
           throw new Error("Failed to fetch products");
         }
@@ -49,15 +51,22 @@ const response = await fetch("/api/products?page=1&limit=100");
     fetchProducts();
   }, []);
 
-const filteredProducts = products.filter((product) => {
-  const selected = selectedCategory.toLowerCase().trim();
-  const category = product.category?.toLowerCase().trim() || "";
+  const filteredProducts = selectedCategory
+    ? products.filter((product) => {
+        const selected = selectedCategory.toLowerCase().trim();
+        const category = product.category?.toLowerCase().trim() || "";
 
-  return category === selected;
-});
+        return category === selected;
+      })
+    : products.filter(
+        (product) => product.badge || product.oldPrice
+      );
 
   return (
-    <section className="bg-white px-6 py-2">
+    <section
+      id="featured-products"
+      className="bg-white px-6 py-2"
+    >
       <div className="mx-auto max-w-7xl">
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {filteredProducts.map((product) => (
@@ -74,9 +83,7 @@ const filteredProducts = products.filter((product) => {
 
                 <button
                   type="button"
-                  onClick={() =>
-                    toggleWishlist(product._id)
-                  }
+                  onClick={() => toggleWishlist(product._id)}
                   aria-label={
                     isWishlisted(product._id)
                       ? `Remove ${product.name} from wishlist`
@@ -137,17 +144,25 @@ const filteredProducts = products.filter((product) => {
                   onClick={async () => {
                     try {
                       await addToCart(product._id);
-                      alert(`${product.name} added to cart!`);
+
+                      setAddedProductId(product._id);
+
+                      setTimeout(() => {
+                        setAddedProductId(null);
+                      }, 2000);
                     } catch (error) {
-                      console.error(
-                        "Add to cart error:",
-                        error
-                      );
+                      console.error("Add to cart error:", error);
                     }
                   }}
-                  className="mt-4 w-full rounded-full bg-[#155e4a] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f4939]"
+                  className={`mt-4 w-full rounded-full px-4 py-2 text-sm font-semibold text-white transition ${
+                    addedProductId === product._id
+                      ? "bg-[#0f4939]"
+                      : "bg-[#155e4a] hover:bg-[#0f4939]"
+                  }`}
                 >
-                  Add to Cart
+                  {addedProductId === product._id
+                    ? "✓ Product Added"
+                    : "Add to Cart"}
                 </button>
               </div>
             </div>

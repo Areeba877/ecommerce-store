@@ -8,7 +8,7 @@ import { useWishlist } from "../app/WishlistContext";
 const navLinks = [
   { name: "Products", href: "/products" },
   { name: "Categories", href: "/categories" },
-  { name: "Deals", href: "/#deals" },
+{ name: "Deals", href: "/#featured-products" },
   { name: "Contact", href: "/contact" },
   { name: "About", href: "/about" },
 ];
