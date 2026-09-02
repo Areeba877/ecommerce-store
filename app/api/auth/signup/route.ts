@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { Resend } from "resend";
+import transporter from "@/lib/nodemailer";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 
@@ -15,13 +15,6 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { message: "Name, email and password are required." },
         { status: 400 }
-      );
-    }
-
-    if (!process.env.RESEND_API_KEY) {
-      return NextResponse.json(
-        { message: "RESEND_API_KEY is not configured." },
-        { status: 500 }
       );
     }
 
@@ -60,36 +53,34 @@ export async function POST(request: Request) {
       verificationCodeExpires,
     });
 
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    try {
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: normalizedEmail,
+        subject: "Your verification code",
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
+            <h2>Verify your email</h2>
 
-    const { error: emailError } = await resend.emails.send({
-      from: "Ecommerce Store <onboarding@resend.dev>",
-      to: [normalizedEmail],
-      subject: "Your verification code",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
-          <h2>Verify your email</h2>
+            <p>Hello ${trimmedName},</p>
 
-          <p>Hello ${trimmedName},</p>
+            <p>Your 6-digit verification code is:</p>
 
-          <p>Your 6-digit verification code is:</p>
+            <div style="
+              font-size: 32px;
+              font-weight: bold;
+              letter-spacing: 8px;
+              margin: 24px 0;
+            ">
+              ${verificationCode}
+            </div>
 
-          <div style="
-            font-size: 32px;
-            font-weight: bold;
-            letter-spacing: 8px;
-            margin: 24px 0;
-          ">
-            ${verificationCode}
+            <p>This code will expire in 10 minutes.</p>
           </div>
-
-          <p>This code will expire in 10 minutes.</p>
-        </div>
-      `,
-    });
-
-    if (emailError) {
-      console.error("Resend email error:", emailError);
+        `,
+      });
+    } catch (emailError) {
+      console.error("Nodemailer email error:", emailError);
 
       await User.findByIdAndDelete(user._id);
 

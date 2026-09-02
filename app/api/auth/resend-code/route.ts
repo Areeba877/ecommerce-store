@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
-import { Resend } from "resend";
+import transporter from "@/lib/nodemailer";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: Request) {
   try {
@@ -43,7 +41,7 @@ export async function POST(request: Request) {
     ).toString();
 
     const verificationCodeExpires = new Date(
-      Date.now() + 60 * 1000
+      Date.now() + 10 * 60 * 1000
     );
 
     user.verificationCode = verificationCode;
@@ -51,32 +49,32 @@ export async function POST(request: Request) {
 
     await user.save();
 
-    const { error: emailError } = await resend.emails.send({
-      from: "Ecommerce Store <onboarding@resend.dev>",
-      to: [normalizedEmail],
-      subject: "Your new verification code",
-      html: `
-        <div style="font-family: Arial, sans-serif;">
-          <h2>Verify your email</h2>
+    try {
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: normalizedEmail,
+        subject: "Your new verification code",
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
+            <h2>Verify your email</h2>
 
-          <p>Your new 6-digit verification code is:</p>
+            <p>Your new 6-digit verification code is:</p>
 
-          <div style="
-            font-size: 32px;
-            font-weight: bold;
-            letter-spacing: 8px;
-            margin: 24px 0;
-          ">
-            ${verificationCode}
+            <div style="
+              font-size: 32px;
+              font-weight: bold;
+              letter-spacing: 8px;
+              margin: 24px 0;
+            ">
+              ${verificationCode}
+            </div>
+
+            <p>This code will expire in 10 minutes.</p>
           </div>
-
-          <p>This code will expire in 1 minute.</p>
-        </div>
-      `,
-    });
-
-    if (emailError) {
-      console.error("Resend code email error:", emailError);
+        `,
+      });
+    } catch (emailError) {
+      console.error("Nodemailer resend email error:", emailError);
 
       return NextResponse.json(
         { message: "Failed to send verification code." },
