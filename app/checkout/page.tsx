@@ -14,6 +14,8 @@ export default function CheckoutPage() {
   } = useCart();
 
   const [orderPlaced, setOrderPlaced] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   const subtotal = getCartTotal();
   const shipping = 0;
@@ -25,11 +27,124 @@ export default function CheckoutPage() {
       maximumFractionDigits: 2,
     })}`;
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setOrderPlaced(true);
+
+    setIsSubmitting(true);
+    setError("");
+
+    try {
+      const formData = new FormData(event.currentTarget);
+
+      const customerName = String(formData.get("customerName") || "");
+      const customerEmail = String(formData.get("customerEmail") || "");
+      const phone = String(formData.get("phone") || "");
+
+      const address = String(formData.get("address") || "");
+      const city = String(formData.get("city") || "");
+      const postalCode = String(formData.get("postalCode") || "");
+      const country = String(formData.get("country") || "");
+
+      const paymentMethod = String(
+        formData.get("payment") || "cod"
+      ) as "cod" | "card";
+
+      const shippingAddress = {
+        address,
+        city,
+        postalCode,
+        country,
+      };
+
+      // ==========================================
+      // CARD PAYMENT - STRIPE CHECKOUT
+      // ==========================================
+      if (paymentMethod === "card") {
+        const response = await fetch(
+          "/api/stripe/create-checkout-session",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({
+              customerName,
+              customerEmail,
+              phone,
+              shippingAddress,
+            }),
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.message || "Failed to start Stripe Checkout"
+          );
+        }
+
+        if (!data.url) {
+          throw new Error(
+            "Stripe Checkout URL was not returned."
+          );
+        }
+
+        // Redirect to Stripe Checkout
+        window.location.href = data.url;
+
+        return;
+      }
+
+      // ==========================================
+      // CASH ON DELIVERY
+      // ==========================================
+      // IMPORTANT:
+      // /api/orders already clears the cart after
+      // successfully creating the COD order.
+      // So we do NOT call clearCart() here.
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          customerName,
+          customerEmail,
+          phone,
+          shippingAddress,
+          paymentMethod: "cod",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to place order"
+        );
+      }
+
+      // Order API has already cleared the cart
+      setOrderPlaced(true);
+    } catch (error) {
+      console.error("Checkout error:", error);
+
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
+  // ==========================================
+  // COD SUCCESS SCREEN
+  // ==========================================
   if (orderPlaced) {
     return (
       <main className="min-h-screen bg-white px-5 py-12 sm:px-8">
@@ -57,6 +172,9 @@ export default function CheckoutPage() {
     );
   }
 
+  // ==========================================
+  // EMPTY CART
+  // ==========================================
   if (cartItems.length === 0) {
     return (
       <main className="min-h-screen bg-white px-5 py-12 sm:px-8">
@@ -95,7 +213,7 @@ export default function CheckoutPage() {
           onSubmit={handleSubmit}
           className="mt-8 grid gap-8 lg:grid-cols-[1fr_380px]"
         >
-          {/* Customer Information */}
+          {/* CUSTOMER INFORMATION */}
           <div className="space-y-6">
             <section className="rounded-2xl border border-gray-200 bg-white p-6">
               <h2 className="text-xl font-bold text-gray-900">
@@ -110,6 +228,7 @@ export default function CheckoutPage() {
 
                   <input
                     required
+                    name="customerName"
                     type="text"
                     placeholder="Enter your full name"
                     className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-[#155e4a]"
@@ -123,6 +242,7 @@ export default function CheckoutPage() {
 
                   <input
                     required
+                    name="customerEmail"
                     type="email"
                     placeholder="you@example.com"
                     className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-[#155e4a]"
@@ -136,6 +256,7 @@ export default function CheckoutPage() {
 
                   <input
                     required
+                    name="phone"
                     type="tel"
                     placeholder="+92 300 1234567"
                     className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-[#155e4a]"
@@ -144,7 +265,7 @@ export default function CheckoutPage() {
               </div>
             </section>
 
-            {/* Shipping Address */}
+            {/* SHIPPING ADDRESS */}
             <section className="rounded-2xl border border-gray-200 bg-white p-6">
               <h2 className="text-xl font-bold text-gray-900">
                 Shipping Address
@@ -158,6 +279,7 @@ export default function CheckoutPage() {
 
                   <input
                     required
+                    name="address"
                     type="text"
                     placeholder="Street address"
                     className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-[#155e4a]"
@@ -172,6 +294,7 @@ export default function CheckoutPage() {
 
                     <input
                       required
+                      name="city"
                       type="text"
                       placeholder="City"
                       className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-[#155e4a]"
@@ -185,6 +308,7 @@ export default function CheckoutPage() {
 
                     <input
                       required
+                      name="postalCode"
                       type="text"
                       placeholder="Postal code"
                       className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-[#155e4a]"
@@ -199,15 +323,26 @@ export default function CheckoutPage() {
 
                   <select
                     required
+                    name="country"
                     defaultValue=""
                     className="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none focus:border-[#155e4a]"
                   >
                     <option value="" disabled>
                       Select country
                     </option>
-                    <option value="Pakistan">Pakistan</option>
-                    <option value="United States">United States</option>
-                    <option value="United Kingdom">United Kingdom</option>
+
+                    <option value="Pakistan">
+                      Pakistan
+                    </option>
+
+                    <option value="United States">
+                      United States
+                    </option>
+
+                    <option value="United Kingdom">
+                      United Kingdom
+                    </option>
+
                     <option value="United Arab Emirates">
                       United Arab Emirates
                     </option>
@@ -216,7 +351,7 @@ export default function CheckoutPage() {
               </div>
             </section>
 
-            {/* Payment */}
+            {/* PAYMENT METHOD */}
             <section className="rounded-2xl border border-gray-200 bg-white p-6">
               <h2 className="text-xl font-bold text-gray-900">
                 Payment Method
@@ -256,15 +391,22 @@ export default function CheckoutPage() {
                     </p>
 
                     <p className="text-sm text-gray-500">
-                      Card payment integration will be added later.
+                      Secure payment powered by Stripe.
                     </p>
                   </div>
                 </label>
               </div>
             </section>
+
+            {/* ERROR MESSAGE */}
+            {error && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                {error}
+              </div>
+            )}
           </div>
 
-          {/* Order Summary */}
+          {/* ORDER SUMMARY */}
           <aside className="h-fit rounded-2xl border border-gray-200 bg-white p-6 lg:sticky lg:top-6">
             <h2 className="text-xl font-bold text-gray-900">
               Order Summary
@@ -279,7 +421,9 @@ export default function CheckoutPage() {
                 if (!product) return null;
 
                 const price = Number(
-                  String(product.price).replace("$", "").replace(",", "")
+                  String(product.price)
+                    .replace("$", "")
+                    .replace(",", "")
                 );
 
                 return (
@@ -308,7 +452,7 @@ export default function CheckoutPage() {
                         <button
                           type="button"
                           onClick={() =>
-                            decreaseQuantity(product.id)
+                            decreaseQuantity(item.productId)
                           }
                           className="h-7 w-7 rounded-full border border-gray-300 text-gray-600"
                         >
@@ -322,7 +466,7 @@ export default function CheckoutPage() {
                         <button
                           type="button"
                           onClick={() =>
-                            increaseQuantity(product.id)
+                            increaseQuantity(item.productId)
                           }
                           className="h-7 w-7 rounded-full border border-gray-300 text-gray-600"
                         >
@@ -339,9 +483,12 @@ export default function CheckoutPage() {
               })}
             </div>
 
+            {/* PRICE SUMMARY */}
             <div className="mt-6 space-y-4">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Subtotal</span>
+                <span className="text-gray-500">
+                  Subtotal
+                </span>
 
                 <span className="font-semibold text-gray-900">
                   {formatPrice(subtotal)}
@@ -349,7 +496,9 @@ export default function CheckoutPage() {
               </div>
 
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Shipping</span>
+                <span className="text-gray-500">
+                  Shipping
+                </span>
 
                 <span className="font-semibold text-green-700">
                   Free
@@ -367,11 +516,15 @@ export default function CheckoutPage() {
               </div>
             </div>
 
+            {/* SUBMIT BUTTON */}
             <button
               type="submit"
-              className="mt-6 w-full rounded-full bg-[#155e4a] px-5 py-3 font-semibold text-white transition hover:bg-[#0f4939]"
+              disabled={isSubmitting}
+              className="mt-6 w-full rounded-full bg-[#155e4a] px-5 py-3 font-semibold text-white transition hover:bg-[#0f4939] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Place Order — {formatPrice(total)}
+              {isSubmitting
+                ? "Processing..."
+                : `Place Order — ${formatPrice(total)}`}
             </button>
 
             <Link
