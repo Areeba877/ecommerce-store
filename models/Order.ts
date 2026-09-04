@@ -23,6 +23,10 @@ export interface IOrder extends Document {
   items: IOrderItem[];
   shippingAddress: IShippingAddress;
   paymentMethod: "cod" | "card";
+
+  stripeSessionId?: string;
+paymentIntentId?: string;
+
   subtotal: number;
   shipping: number;
   total: number;
@@ -141,6 +145,17 @@ const OrderSchema = new Schema<IOrder>(
       required: true,
       default: "cod",
     },
+
+    stripeSessionId: {
+  type: String,
+  unique: true,
+  sparse: true,
+},
+
+paymentIntentId: {
+  type: String,
+  sparse: true,
+},
 
     subtotal: {
       type: Number,
