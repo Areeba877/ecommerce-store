@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { jwtVerify } from "jose";
+import "@/models/Product";
 
 import Order from "@/models/Order";
 import { connectDB } from "@/lib/mongodb";

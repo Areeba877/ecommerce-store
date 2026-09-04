@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 import { connectDB } from "@/lib/mongodb";
 import Cart from "@/models/Cart";
+import "@/models/Product";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
