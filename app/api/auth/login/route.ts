@@ -54,8 +54,7 @@ export async function POST(request: Request) {
     if (!user.isVerified) {
       return NextResponse.json(
         {
-          message:
-            "Please verify your email before logging in.",
+          message: "Please verify your email before logging in.",
         },
         { status: 403 }
       );
@@ -64,6 +63,7 @@ export async function POST(request: Request) {
     const token = await new SignJWT({
       userId: user._id.toString(),
       email: user.email,
+      role: user.role,
     })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
@@ -78,6 +78,7 @@ export async function POST(request: Request) {
           name: user.name,
           email: user.email,
           isVerified: user.isVerified,
+          role: user.role,
         },
       },
       { status: 200 }
