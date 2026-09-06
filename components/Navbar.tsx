@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useWishlist } from "../app/WishlistContext";
 
 const navLinks = [
   { name: "Products", href: "/products" },
   { name: "Categories", href: "/categories" },
-{ name: "Deals", href: "/#featured-products" },
+  { name: "Deals", href: "/#featured-products" },
   { name: "Contact", href: "/contact" },
   { name: "About", href: "/about" },
 ];
@@ -76,6 +76,7 @@ function MenuIcon() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
+      strokeLinejoin="round"
     >
       <path d="M4 7h16" />
       <path d="M4 12h16" />
@@ -94,6 +95,7 @@ function CloseIcon() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
+      strokeLinejoin="round"
     >
       <path d="m6 6 12 12" />
       <path d="m18 6-12 12" />
@@ -103,10 +105,36 @@ function CloseIcon() {
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
   const pathname = usePathname();
+  const router = useRouter();
 
   const { wishlist } = useWishlist();
-  
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error("Logout failed");
+      }
+
+      setIsLoggedIn(false);
+      setIsMenuOpen(false);
+
+      router.push("/login");
+      router.refresh();
+    } catch (error) {
+      console.error("Logout error:", error);
+      setIsLoggingOut(false);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-gray-100 bg-white">
@@ -127,34 +155,35 @@ export default function Navbar() {
 
         {/* Desktop Navigation */}
         <div className="hidden items-center gap-9 md:flex">
-         {navLinks.map((link) => {
-  const isActive =
-    link.href === "/"
-      ? pathname === "/"
-      : pathname.startsWith(link.href);
+          {navLinks.map((link) => {
+            const isActive =
+              link.href === "/"
+                ? pathname === "/"
+                : pathname.startsWith(link.href);
 
-  return (
-    <Link
-      key={link.name}
-      href={link.href}
-      className={`relative py-7 text-[15px] font-semibold transition-colors ${
-        isActive
-          ? "text-[#2f9638]"
-          : "text-gray-600 hover:text-[#2f9638]"
-      }`}
-    >
-      {link.name}
+            return (
+              <Link
+                key={link.name}
+                href={link.href}
+                className={`relative py-7 text-[15px] font-semibold transition-colors ${
+                  isActive
+                    ? "text-[#2f9638]"
+                    : "text-gray-600 hover:text-[#2f9638]"
+                }`}
+              >
+                {link.name}
 
-      {isActive && (
-        <span className="absolute bottom-[13px] left-0 h-[2px] w-full rounded-full bg-[#2f9638]" />
-      )}
-    </Link>
-  );
-})}
+                {isActive && (
+                  <span className="absolute bottom-[13px] left-0 h-[2px] w-full rounded-full bg-[#2f9638]" />
+                )}
+              </Link>
+            );
+          })}
         </div>
 
         {/* Desktop Actions */}
         <div className="hidden items-center gap-5 md:flex">
+
           {/* Search */}
           <button
             type="button"
@@ -190,13 +219,24 @@ export default function Navbar() {
             </span>
           </button>
 
-          {/* Desktop Login Button */}
-<Link
-  href="/login"
-  className="cursor-pointer text-[15px] font-semibold text-gray-700 transition-colors hover:text-[#2f9638]"
->
-  Login
-</Link>
+          {/* Login / Logout */}
+          {isLoggedIn ? (
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="cursor-pointer text-[15px] font-semibold text-gray-700 transition-colors hover:text-[#2f9638] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isLoggingOut ? "Logging out..." : "Logout"}
+            </button>
+          ) : (
+            <Link
+              href="/login"
+              className="cursor-pointer text-[15px] font-semibold text-gray-700 transition-colors hover:text-[#2f9638]"
+            >
+              Login
+            </Link>
+          )}
         </div>
 
         {/* Mobile Menu Button */}
@@ -216,29 +256,31 @@ export default function Navbar() {
         <div className="border-t border-gray-100 bg-white px-5 py-5 shadow-sm md:hidden">
           <div className="flex flex-col">
 
-          {navLinks.map((link) => {
-  const isActive =
-    link.href === "/"
-      ? pathname === "/"
-      : pathname.startsWith(link.href);
+            {navLinks.map((link) => {
+              const isActive =
+                link.href === "/"
+                  ? pathname === "/"
+                  : pathname.startsWith(link.href);
 
-  return (
-    <Link
-      key={link.name}
-      href={link.href}
-      onClick={() => setIsMenuOpen(false)}
-      className={`border-b border-gray-100 py-4 text-[15px] font-semibold ${
-        isActive
-          ? "text-[#2f9638]"
-          : "text-gray-700 hover:text-[#2f9638]"
-      }`}
-    >
-      {link.name}
-    </Link>
-  );
-})}
+              return (
+                <Link
+                  key={link.name}
+                  href={link.href}
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`border-b border-gray-100 py-4 text-[15px] font-semibold ${
+                    isActive
+                      ? "text-[#2f9638]"
+                      : "text-gray-700 hover:text-[#2f9638]"
+                  }`}
+                >
+                  {link.name}
+                </Link>
+              );
+            })}
 
             <div className="flex items-center gap-5 border-b border-gray-100 py-4">
+
+              {/* Search */}
               <button
                 type="button"
                 aria-label="Search"
@@ -247,6 +289,7 @@ export default function Navbar() {
                 <SearchIcon />
               </button>
 
+              {/* Cart */}
               <button
                 type="button"
                 aria-label="Shopping cart"
@@ -259,6 +302,7 @@ export default function Navbar() {
                 </span>
               </button>
 
+              {/* Wishlist */}
               <button
                 type="button"
                 aria-label="Wishlist"
@@ -272,14 +316,25 @@ export default function Navbar() {
               </button>
             </div>
 
-            {/* Mobile Login Button */}
-<Link
-  href="/login"
-  onClick={() => setIsMenuOpen(false)}
-  className="mt-4 block w-full cursor-pointer rounded-lg bg-[#2f9638] px-5 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-[#267d2f]"
->
-  Login
-</Link>
+            {/* Mobile Login / Logout */}
+            {isLoggedIn ? (
+              <button
+                type="button"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="mt-4 block w-full rounded-lg bg-[#064e3b] px-5 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-[#053b2d] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isLoggingOut ? "Logging out..." : "Logout"}
+              </button>
+            ) : (
+              <Link
+                href="/login"
+                onClick={() => setIsMenuOpen(false)}
+                className="mt-4 block w-full cursor-pointer rounded-lg bg-[#064e3b] px-5 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-[#053b2d]"
+              >
+                Login
+              </Link>
+            )}
           </div>
         </div>
       )}
