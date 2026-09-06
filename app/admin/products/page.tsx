@@ -642,8 +642,9 @@ export default function AdminProductsPage() {
                             onClick={() =>
                               openEditForm(product)
                             }
-                            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                          >
+
+className="rounded-lg border border-green-600 px-4 py-2 text-sm font-medium text-green-600 transition hover:bg-green-50"
+>
                             Edit
                           </button>
 
@@ -654,8 +655,7 @@ export default function AdminProductsPage() {
                             disabled={
                               deleting === product._id
                             }
-                            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60"
-                          >
+className="rounded-lg border border-red-600 px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"                          >
                             {deleting === product._id
                               ? "Deleting..."
                               : "Delete"}
