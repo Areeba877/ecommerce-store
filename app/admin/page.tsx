@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 interface RecentOrder {
   _id: string;
@@ -94,6 +95,59 @@ export default function AdminDashboardPage() {
             Overview of your ShopCart store.
           </p>
         </div>
+
+        {/* Admin Navigation */}
+<div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+  <Link
+    href="/admin/users"
+    className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-green-600 hover:bg-green-50"
+  >
+    <p className="font-semibold text-[#123b2a]">User Management</p>
+    <p className="mt-1 text-sm text-gray-500">
+      Manage users and roles
+    </p>
+  </Link>
+
+  <Link
+    href="/admin/products"
+    className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-green-600 hover:bg-green-50"
+  >
+    <p className="font-semibold text-[#123b2a]">Product Management</p>
+    <p className="mt-1 text-sm text-gray-500">
+      Manage store products
+    </p>
+  </Link>
+
+  <Link
+    href="/admin/categories"
+    className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-green-600 hover:bg-green-50"
+  >
+    <p className="font-semibold text-[#123b2a]">Category Management</p>
+    <p className="mt-1 text-sm text-gray-500">
+      Manage product categories
+    </p>
+  </Link>
+
+  <Link
+    href="/admin/orders"
+    className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-green-600 hover:bg-green-50"
+  >
+    <p className="font-semibold text-[#123b2a]">Order Management</p>
+    <p className="mt-1 text-sm text-gray-500">
+      View and manage orders
+    </p>
+  </Link>
+
+  <Link
+    href="/admin/analytics"
+    className="rounded-xl border border-green-600 bg-green-50 p-5 shadow-sm transition hover:bg-green-100"
+  >
+    <p className="font-semibold text-[#123b2a]">Analytics</p>
+    <p className="mt-1 text-sm text-gray-600">
+      View store performance
+    </p>
+  </Link>
+</div>
 
         {/* Statistics */}
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
