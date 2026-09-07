@@ -146,7 +146,9 @@ export default function ContactPage() {
               We&apos;re here to help
             </h1>
 
-            <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-gray-500 sm:text-lg">
+
+              <p className="mx-auto mt-6 max-w-1xl text-base leading-8 text-gray-600 sm:text-lg">
+
               Got a question about an order, our products, or shipping?
               Reach out to our customer care team and we&apos;ll get back to
               you within 24 hours.
@@ -172,10 +174,10 @@ export default function ContactPage() {
               </p>
 
               <a
-                href="mailto:support@cartify.com"
+                href="mailto:support@ShopCart.com"
                 className="mt-4 block text-sm font-semibold text-[#155e4a] hover:text-[#0f4939]"
               >
-                support@cartify.com
+                support@ShopCart.com
               </a>
             </div>
 
@@ -212,7 +214,7 @@ export default function ContactPage() {
               </h2>
 
               <p className="mt-2 text-sm text-gray-500">
-                E2 Block Johar Town
+                C2 Block Johar Town
               </p>
 
               <p className="mt-1 text-sm font-semibold text-[#123b2a]">
