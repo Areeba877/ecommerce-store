@@ -8,7 +8,7 @@ import { useWishlist } from "../app/WishlistContext";
 const navLinks = [
   { name: "Products", href: "/products" },
   { name: "Categories", href: "/categories" },
-  { name: "Deals", href: "/#featured-products" },
+  { name: "Featured", href: "/#featured-products" },
   { name: "Contact", href: "/contact" },
   { name: "About", href: "/about" },
 ];
@@ -105,7 +105,15 @@ function CloseIcon() {
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  const [user, setUser] = useState<{
+    name: string;
+    email: string;
+    role: "user" | "admin";
+  } | null>(null);
+
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const pathname = usePathname();
@@ -113,23 +121,32 @@ export default function Navbar() {
 
   const { wishlist } = useWishlist();
 
- useEffect(() => {
-  const checkLoginStatus = async () => {
-    try {
-      const response = await fetch("/api/auth/me", {
-        credentials: "include",
-        cache: "no-store",
-      });
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      try {
+        const response = await fetch("/api/auth/me", {
+          credentials: "include",
+          cache: "no-store",
+        });
 
-      setIsLoggedIn(response.ok);
-    } catch (error) {
-      console.error("Login status check error:", error);
-      setIsLoggedIn(false);
-    }
-  };
+        if (response.ok) {
+          const data = await response.json();
 
-  checkLoginStatus();
-}, [pathname]);
+          setIsLoggedIn(true);
+          setUser(data.user);
+        } else {
+          setIsLoggedIn(false);
+          setUser(null);
+        }
+      } catch (error) {
+        console.error("Login status check error:", error);
+        setIsLoggedIn(false);
+        setUser(null);
+      }
+    };
+
+    checkLoginStatus();
+  }, [pathname]);
 
   const handleLogout = async () => {
     try {
@@ -145,6 +162,7 @@ export default function Navbar() {
       }
 
       setIsLoggedIn(false);
+      setUser(null);
       setIsMenuOpen(false);
 
       router.push("/login");
@@ -236,24 +254,34 @@ export default function Navbar() {
             </span>
           </button>
 
-          {/* Login / Logout */}
-          {isLoggedIn ? (
-            <button
-              type="button"
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-              className="cursor-pointer text-[15px] font-semibold text-gray-700 transition-colors hover:text-[#2f9638] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isLoggingOut ? "Logging out..." : "Logout"}
-            </button>
-          ) : (
-            <Link
-              href="/login"
-              className="cursor-pointer text-[15px] font-semibold text-gray-700 transition-colors hover:text-[#2f9638]"
-            >
-              Login
-            </Link>
-          )}
+          {/* User Details + Logout */}
+        {/* User + Logout */}
+{isLoggedIn && user ? (
+  <div className="flex items-center gap-4">
+    <Link
+      href="/profile"
+      className="text-[15px] font-semibold text-gray-700 transition-colors hover:text-[#2f9638]"
+    >
+      Hi, {user.name.split(" ")[0]}
+    </Link>
+
+    <button
+      type="button"
+      onClick={handleLogout}
+      disabled={isLoggingOut}
+      className="cursor-pointer text-[15px] font-semibold text-gray-700 transition-colors hover:text-[#2f9638] disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {isLoggingOut ? "Logging out..." : "Logout"}
+    </button>
+  </div>
+) : (
+  <Link
+    href="/login"
+    className="cursor-pointer text-[15px] font-semibold text-gray-700 transition-colors hover:text-[#2f9638]"
+  >
+    Login
+  </Link>
+)}
         </div>
 
         {/* Mobile Menu Button */}
@@ -294,6 +322,7 @@ export default function Navbar() {
               );
             })}
 
+            {/* Mobile Icons */}
             <div className="flex items-center gap-5 border-b border-gray-100 py-4">
               {/* Search */}
               <button
@@ -330,6 +359,17 @@ export default function Navbar() {
                 </span>
               </button>
             </div>
+
+       {/* Mobile User */}
+{isLoggedIn && user && (
+  <Link
+    href="/profile"
+    onClick={() => setIsMenuOpen(false)}
+    className="mt-4 rounded-lg bg-gray-50 px-4 py-4 text-[15px] font-semibold text-gray-800 hover:text-[#2f9638]"
+  >
+    Hi, {user.name.split(" ")[0]}
+  </Link>
+)}
 
             {/* Mobile Login / Logout */}
             {isLoggedIn ? (

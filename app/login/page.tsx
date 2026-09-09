@@ -28,7 +28,13 @@ export default function LoginPage() {
         return;
       }
 
-      window.location.href = "/";
+if (data.user?.role === "admin") {
+  window.location.href = "/admin";
+} else {
+  window.location.href = "/";
+}
+
+
     } catch (err) {
       setError("Network or server connection failed.");
     } finally {

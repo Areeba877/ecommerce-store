@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
+import { connectDB } from "@/lib/mongodb";
+import User from "@/models/User";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -24,12 +26,33 @@ export async function GET() {
 
     const { payload } = await jwtVerify(token, secret);
 
+    if (!payload.userId) {
+      return NextResponse.json(
+        { authenticated: false },
+        { status: 401 }
+      );
+    }
+
+    await connectDB();
+
+    const user = await User.findById(payload.userId).select(
+      "name email role"
+    );
+
+    if (!user) {
+      return NextResponse.json(
+        { authenticated: false },
+        { status: 401 }
+      );
+    }
+
     return NextResponse.json({
       authenticated: true,
       user: {
-        userId: payload.userId,
-        email: payload.email,
-        role: payload.role,
+        userId: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
       },
     });
   } catch (error) {
