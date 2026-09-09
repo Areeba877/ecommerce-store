@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useWishlist } from "../app/WishlistContext";
 
@@ -113,12 +113,31 @@ export default function Navbar() {
 
   const { wishlist } = useWishlist();
 
+ useEffect(() => {
+  const checkLoginStatus = async () => {
+    try {
+      const response = await fetch("/api/auth/me", {
+        credentials: "include",
+        cache: "no-store",
+      });
+
+      setIsLoggedIn(response.ok);
+    } catch (error) {
+      console.error("Login status check error:", error);
+      setIsLoggedIn(false);
+    }
+  };
+
+  checkLoginStatus();
+}, [pathname]);
+
   const handleLogout = async () => {
     try {
       setIsLoggingOut(true);
 
       const response = await fetch("/api/auth/logout", {
         method: "POST",
+        credentials: "include",
       });
 
       if (!response.ok) {
@@ -139,7 +158,6 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-gray-100 bg-white">
       <nav className="mx-auto flex h-[76px] max-w-[1280px] items-center justify-between px-5 sm:px-8 lg:px-3">
-
         {/* Logo */}
         <Link
           href="/"
@@ -183,7 +201,6 @@ export default function Navbar() {
 
         {/* Desktop Actions */}
         <div className="hidden items-center gap-5 md:flex">
-
           {/* Search */}
           <button
             type="button"
@@ -255,7 +272,6 @@ export default function Navbar() {
       {isMenuOpen && (
         <div className="border-t border-gray-100 bg-white px-5 py-5 shadow-sm md:hidden">
           <div className="flex flex-col">
-
             {navLinks.map((link) => {
               const isActive =
                 link.href === "/"
@@ -279,7 +295,6 @@ export default function Navbar() {
             })}
 
             <div className="flex items-center gap-5 border-b border-gray-100 py-4">
-
               {/* Search */}
               <button
                 type="button"
