@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 interface Product {
   _id: string;
   name: string;
+  description?: string;
   category: string;
   price: number;
   oldPrice?: number;
@@ -13,11 +14,18 @@ interface Product {
   brand?: string;
   collection?: string;
   type?: string;
-  stock?: string;
+  stock?: number;
+}
+
+interface Category {
+  _id: string;
+  name: string;
+  slug: string;
 }
 
 interface ProductForm {
   name: string;
+  description: string;
   category: string;
   price: string;
   oldPrice: string;
@@ -31,6 +39,7 @@ interface ProductForm {
 
 const emptyForm: ProductForm = {
   name: "",
+  description: "",
   category: "",
   price: "",
   oldPrice: "",
@@ -39,11 +48,13 @@ const emptyForm: ProductForm = {
   brand: "",
   collection: "",
   type: "",
-  stock: "Available",
+  stock: "0",
 };
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -68,7 +79,9 @@ export default function AdminProductsPage() {
         throw new Error(data.message || "Failed to load products");
       }
 
-      setProducts(Array.isArray(data) ? data : data.products || []);
+      setProducts(
+        Array.isArray(data) ? data : data.products || []
+      );
     } catch (error) {
       setError(
         error instanceof Error
@@ -80,8 +93,32 @@ export default function AdminProductsPage() {
     }
   }
 
+  async function loadCategories() {
+    try {
+      const response = await fetch("/api/categories");
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to load categories"
+        );
+      }
+
+      setCategories(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Failed to load categories:", error);
+
+      showError(
+        error instanceof Error
+          ? error.message
+          : "Failed to load categories"
+      );
+    }
+  }
+
   useEffect(() => {
     loadProducts();
+    loadCategories();
   }, []);
 
   function showSuccess(text: string) {
@@ -103,7 +140,9 @@ export default function AdminProductsPage() {
   }
 
   function handleChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) {
     const { name, value } = e.target;
 
@@ -113,10 +152,13 @@ export default function AdminProductsPage() {
     }));
   }
 
-  function openAddForm() {
+  async function openAddForm() {
     setEditingId(null);
     setForm(emptyForm);
     setShowForm(true);
+
+    // Latest categories load karne ke liye
+    await loadCategories();
   }
 
   function openEditForm(product: Product) {
@@ -124,6 +166,7 @@ export default function AdminProductsPage() {
 
     setForm({
       name: product.name || "",
+      description: product.description || "",
       category: product.category || "",
       price: product.price?.toString() || "",
       oldPrice: product.oldPrice?.toString() || "",
@@ -132,7 +175,10 @@ export default function AdminProductsPage() {
       brand: product.brand || "",
       collection: product.collection || "",
       type: product.type || "",
-      stock: product.stock || "Available",
+      stock:
+        product.stock !== undefined
+          ? product.stock.toString()
+          : "0",
     });
 
     setShowForm(true);
@@ -150,12 +196,23 @@ export default function AdminProductsPage() {
     e.preventDefault();
 
     if (
-      !form.name ||
+      !form.name.trim() ||
       !form.category ||
       !form.price ||
-      !form.image
+      !form.image.trim()
     ) {
-      showError("Name, category, price and image are required.");
+      showError(
+        "Name, category, price and image are required."
+      );
+      return;
+    }
+
+    const stock = Number(form.stock);
+
+    if (!Number.isInteger(stock) || stock < 0) {
+      showError(
+        "Stock must be a non-negative whole number."
+      );
       return;
     }
 
@@ -164,18 +221,19 @@ export default function AdminProductsPage() {
       setError("");
 
       const payload = {
-        name: form.name,
+        name: form.name.trim(),
+        description: form.description.trim(),
         category: form.category,
         price: Number(form.price),
         oldPrice: form.oldPrice
           ? Number(form.oldPrice)
           : undefined,
-        image: form.image,
+        image: form.image.trim(),
         badge: form.badge || undefined,
         brand: form.brand || undefined,
         collection: form.collection || undefined,
         type: form.type || undefined,
-        stock: form.stock || "Available",
+        stock,
       };
 
       const url = editingId
@@ -194,7 +252,7 @@ export default function AdminProductsPage() {
 
       const text = await response.text();
 
-      let data: { message?: string; product?: Product } = {};
+      let data: { message?: string } = {};
 
       if (text) {
         try {
@@ -207,7 +265,9 @@ export default function AdminProductsPage() {
       if (!response.ok) {
         throw new Error(
           data.message ||
-            `Failed to ${editingId ? "update" : "create"} product`
+            `Failed to ${
+              editingId ? "update" : "create"
+            } product`
         );
       }
 
@@ -292,8 +352,12 @@ export default function AdminProductsPage() {
 
     return (
       product.name.toLowerCase().includes(searchValue) ||
-      product.category.toLowerCase().includes(searchValue) ||
-      product.brand?.toLowerCase().includes(searchValue)
+      product.category
+        .toLowerCase()
+        .includes(searchValue) ||
+      product.brand
+        ?.toLowerCase()
+        .includes(searchValue)
     );
   });
 
@@ -355,7 +419,9 @@ export default function AdminProductsPage() {
           <div className="mb-8 rounded-xl bg-white p-6 shadow-sm">
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-2xl font-bold text-[#123b2a]">
-                {editingId ? "Edit Product" : "Add Product"}
+                {editingId
+                  ? "Edit Product"
+                  : "Add Product"}
               </h2>
 
               <button
@@ -368,10 +434,12 @@ export default function AdminProductsPage() {
 
             <form onSubmit={handleSubmit}>
               <div className="grid gap-5 md:grid-cols-2">
+                {/* Product Name */}
                 <div>
                   <label className="mb-2 block text-sm font-medium">
                     Product Name *
                   </label>
+
                   <input
                     name="name"
                     value={form.name}
@@ -381,23 +449,62 @@ export default function AdminProductsPage() {
                   />
                 </div>
 
+                {/* Description */}
                 <div>
                   <label className="mb-2 block text-sm font-medium">
-                    Category *
+                    Description
                   </label>
-                  <input
-                    name="category"
-                    value={form.category}
+
+                  <textarea
+                    name="description"
+                    value={form.description}
                     onChange={handleChange}
-                    placeholder="Category"
+                    placeholder="Product description"
+                    rows={3}
                     className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-[#064e3b]"
                   />
                 </div>
 
+                {/* Category */}
+                <div>
+                  <label className="mb-2 block text-sm font-medium">
+                    Category *
+                  </label>
+
+                  <select
+                    name="category"
+                    value={form.category}
+                    onChange={handleChange}
+                    required
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:border-[#064e3b]"
+                  >
+                    <option value="">
+                      Select category
+                    </option>
+
+                    {categories.map((category) => (
+                      <option
+                        key={category._id}
+                        value={category.name}
+                      >
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  {categories.length === 0 && (
+                    <p className="mt-1 text-xs text-red-500">
+                      No categories found. Add a category first.
+                    </p>
+                  )}
+                </div>
+
+                {/* Price */}
                 <div>
                   <label className="mb-2 block text-sm font-medium">
                     Price *
                   </label>
+
                   <input
                     name="price"
                     type="number"
@@ -410,10 +517,12 @@ export default function AdminProductsPage() {
                   />
                 </div>
 
+                {/* Old Price */}
                 <div>
                   <label className="mb-2 block text-sm font-medium">
                     Old Price
                   </label>
+
                   <input
                     name="oldPrice"
                     type="number"
@@ -426,10 +535,12 @@ export default function AdminProductsPage() {
                   />
                 </div>
 
+                {/* Image */}
                 <div className="md:col-span-2">
                   <label className="mb-2 block text-sm font-medium">
                     Image URL *
                   </label>
+
                   <input
                     name="image"
                     value={form.image}
@@ -439,10 +550,12 @@ export default function AdminProductsPage() {
                   />
                 </div>
 
+                {/* Brand */}
                 <div>
                   <label className="mb-2 block text-sm font-medium">
                     Brand
                   </label>
+
                   <input
                     name="brand"
                     value={form.brand}
@@ -452,10 +565,12 @@ export default function AdminProductsPage() {
                   />
                 </div>
 
+                {/* Collection */}
                 <div>
                   <label className="mb-2 block text-sm font-medium">
                     Collection
                   </label>
+
                   <input
                     name="collection"
                     value={form.collection}
@@ -465,10 +580,12 @@ export default function AdminProductsPage() {
                   />
                 </div>
 
+                {/* Type */}
                 <div>
                   <label className="mb-2 block text-sm font-medium">
                     Type
                   </label>
+
                   <input
                     name="type"
                     value={form.type}
@@ -478,10 +595,12 @@ export default function AdminProductsPage() {
                   />
                 </div>
 
+                {/* Badge */}
                 <div>
                   <label className="mb-2 block text-sm font-medium">
                     Badge
                   </label>
+
                   <input
                     name="badge"
                     value={form.badge}
@@ -491,22 +610,27 @@ export default function AdminProductsPage() {
                   />
                 </div>
 
+                {/* Stock */}
                 <div>
                   <label className="mb-2 block text-sm font-medium">
-                    Stock
+                    Stock *
                   </label>
 
-                  <select
+                  <input
                     name="stock"
+                    type="number"
+                    min="0"
+                    step="1"
                     value={form.stock}
                     onChange={handleChange}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:border-[#064e3b]"
-                  >
-                    <option value="Available">Available</option>
-                    <option value="Out of Stock">
-                      Out of Stock
-                    </option>
-                  </select>
+                    placeholder="5"
+                    required
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-[#064e3b]"
+                  />
+
+                  <p className="mt-1 text-xs text-gray-500">
+                    Enter the number of units available.
+                  </p>
                 </div>
               </div>
 
@@ -536,6 +660,7 @@ export default function AdminProductsPage() {
           </div>
         )}
 
+        {/* Search */}
         <div className="mb-6">
           <input
             type="text"
@@ -546,6 +671,7 @@ export default function AdminProductsPage() {
           />
         </div>
 
+        {/* Product Count */}
         <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
           <p className="text-sm text-gray-500">
             {search ? "Search Results" : "Total Products"}
@@ -556,114 +682,142 @@ export default function AdminProductsPage() {
           </p>
         </div>
 
+        {/* Products Table */}
         <div className="overflow-hidden rounded-xl bg-white shadow-sm">
           <div className="overflow-x-auto">
             {filteredProducts.length > 0 ? (
               <table className="w-full min-w-[1100px]">
                 <thead>
                   <tr className="border-b bg-gray-50 text-left text-sm text-gray-600">
-                    <th className="px-6 py-4">Product</th>
-                    <th className="px-6 py-4">Category</th>
-                    <th className="px-6 py-4">Brand</th>
-                    <th className="px-6 py-4">Price</th>
-                    <th className="px-6 py-4">Stock</th>
-                    <th className="px-6 py-4">Badge</th>
-                    <th className="px-6 py-4">Action</th>
+                    <th className="px-6 py-4">
+                      Product
+                    </th>
+
+                    <th className="px-6 py-4">
+                      Category
+                    </th>
+
+                    <th className="px-6 py-4">
+                      Brand
+                    </th>
+
+                    <th className="px-6 py-4">
+                      Price
+                    </th>
+
+                    <th className="px-6 py-4">
+                      Stock
+                    </th>
+
+                    <th className="px-6 py-4">
+                      Badge
+                    </th>
+
+                    <th className="px-6 py-4">
+                      Action
+                    </th>
                   </tr>
                 </thead>
 
                 <tbody>
-                  {filteredProducts.map((product) => (
-                    <tr
-                      key={product._id}
-                      className="border-b last:border-0 hover:bg-gray-50"
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-4">
-                          <img
-                            src={product.image}
-                            alt={product.name}
-                            className="h-14 w-14 rounded-lg object-cover"
-                          />
+                  {filteredProducts.map((product) => {
+                    const stock = product.stock ?? 0;
 
-                          <div>
-                            <p className="font-medium text-gray-800">
-                              {product.name}
-                            </p>
+                    return (
+                      <tr
+                        key={product._id}
+                        className="border-b last:border-0 hover:bg-gray-50"
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-4">
+                            <img
+                              src={product.image}
+                              alt={product.name}
+                              className="h-14 w-14 rounded-lg object-cover"
+                            />
 
-                            {product.type && (
-                              <p className="text-xs text-gray-500">
-                                {product.type}
+                            <div>
+                              <p className="font-medium text-gray-800">
+                                {product.name}
                               </p>
-                            )}
+
+                              {product.type && (
+                                <p className="text-xs text-gray-500">
+                                  {product.type}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      <td className="px-6 py-4 text-gray-600">
-                        {product.category}
-                      </td>
+                        <td className="px-6 py-4 text-gray-600">
+                          {product.category}
+                        </td>
 
-                      <td className="px-6 py-4 text-gray-600">
-                        {product.brand || "—"}
-                      </td>
+                        <td className="px-6 py-4 text-gray-600">
+                          {product.brand || "—"}
+                        </td>
 
-                      <td className="px-6 py-4">
-                        <p className="font-semibold text-[#064e3b]">
-                          ${product.price.toFixed(2)}
-                        </p>
-
-                        {product.oldPrice && (
-                          <p className="text-xs text-gray-400 line-through">
-                            ${product.oldPrice.toFixed(2)}
+                        <td className="px-6 py-4">
+                          <p className="font-semibold text-[#064e3b]">
+                            ${product.price.toFixed(2)}
                           </p>
-                        )}
-                      </td>
 
-                      <td className="px-6 py-4">
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-medium ${
-                            product.stock === "Available"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-red-100 text-red-700"
-                          }`}
-                        >
-                          {product.stock || "Available"}
-                        </span>
-                      </td>
+                          {product.oldPrice && (
+                            <p className="text-xs text-gray-400 line-through">
+                              $
+                              {product.oldPrice.toFixed(2)}
+                            </p>
+                          )}
+                        </td>
 
-                      <td className="px-6 py-4 text-gray-600">
-                        {product.badge || "—"}
-                      </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-medium ${
+                              stock > 0
+                                ? "bg-green-100 text-green-700"
+                                : "bg-red-100 text-red-700"
+                            }`}
+                          >
+                            {stock > 0
+                              ? `${stock} in stock`
+                              : "Out of Stock"}
+                          </span>
+                        </td>
 
-                      <td className="px-6 py-4">
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() =>
-                              openEditForm(product)
-                            }
+                        <td className="px-6 py-4 text-gray-600">
+                          {product.badge || "—"}
+                        </td>
 
-className="rounded-lg border border-green-600 px-4 py-2 text-sm font-medium text-green-600 transition hover:bg-green-50"
->
-                            Edit
-                          </button>
+                        <td className="px-6 py-4">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() =>
+                                openEditForm(product)
+                              }
+                              className="rounded-lg border border-green-600 px-4 py-2 text-sm font-medium text-green-600 transition hover:bg-green-50"
+                            >
+                              Edit
+                            </button>
 
-                          <button
-                            onClick={() =>
-                              handleDelete(product._id)
-                            }
-                            disabled={
-                              deleting === product._id
-                            }
-className="rounded-lg border border-red-600 px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"                          >
-                            {deleting === product._id
-                              ? "Deleting..."
-                              : "Delete"}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            <button
+                              onClick={() =>
+                                handleDelete(product._id)
+                              }
+                              disabled={
+                                deleting === product._id
+                              }
+                              className="rounded-lg border border-red-600 px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"
+                            >
+                              {deleting === product._id
+                                ? "Deleting..."
+                                : "Delete"}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             ) : (

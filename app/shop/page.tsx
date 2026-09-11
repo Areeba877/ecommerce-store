@@ -54,6 +54,20 @@ export default function ShopPage() {
 
   const productsPerPage = 10;
 
+  // Read category from URL
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const categoryFromUrl = params.get("category");
+
+  if (categoryFromUrl) {
+    setSelectedCategory(categoryFromUrl);
+  } else {
+    setSelectedCategory("All");
+  }
+
+  setCurrentPage(1);
+}, []);
+
   // Fetch products from MongoDB
   useEffect(() => {
     async function fetchProducts() {
@@ -133,11 +147,12 @@ const response = await fetch("/api/products?limit=100");
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
 
-    const matchesCategory =
-      selectedCategory === "All" ||
-      product.category
-        .toLowerCase()
-        .includes(selectedCategory.toLowerCase());
+   const matchesCategory =
+  selectedCategory === "All" ||
+  product.category
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .includes(selectedCategory.trim().toLowerCase());
 
     const matchesBrand =
       selectedBrand === "All" ||
@@ -247,13 +262,15 @@ const handleAddToCart = async (productId: string) => {
   }}
   className="rounded-full border border-gray-300 bg-white px-5 py-2.5 text-sm outline-none focus:border-[#155e4a]"
 >
- <option value="All">All Categories</option>
-<option value="Clothes">Clothes</option>
-<option value="Beauty">Beauty</option>
-<option value="Shoes">Shoes</option>
-<option value="Bags">Bags</option>
-<option value="Devices">Devices</option>
-<option value="Electronics">Electronics</option>
+<option value="All">All Categories</option>
+
+{categories
+  .filter((category) => category !== "All")
+  .map((category) => (
+    <option key={category} value={category}>
+      {category}
+    </option>
+  ))}
 
 
 </select>
