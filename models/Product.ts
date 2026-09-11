@@ -2,6 +2,7 @@ import mongoose, { Schema, Model } from "mongoose";
 
 export type ProductDocument = {
   name: string;
+  description?: string;
   category: string;
   price: number;
   oldPrice?: number;
@@ -10,7 +11,7 @@ export type ProductDocument = {
   brand?: string;
   collection?: string;
   type?: string;
-  stock?: string;
+  stock: number;
 };
 
 const ProductSchema = new Schema<ProductDocument>(
@@ -19,6 +20,12 @@ const ProductSchema = new Schema<ProductDocument>(
       type: String,
       required: true,
       trim: true,
+    },
+
+    description: {
+      type: String,
+      trim: true,
+      default: "",
     },
 
     category: {
@@ -58,8 +65,10 @@ const ProductSchema = new Schema<ProductDocument>(
     },
 
     stock: {
-      type: String,
-      default: "Available",
+      type: Number,
+      required: true,
+      min: 0,
+      default: 0,
     },
   },
   {
