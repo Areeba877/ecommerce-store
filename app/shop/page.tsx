@@ -54,6 +54,20 @@ export default function ShopPage() {
 
   const productsPerPage = 10;
 
+  // Read category from URL
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const categoryFromUrl = params.get("category");
+
+  if (categoryFromUrl) {
+    setSelectedCategory(categoryFromUrl);
+  } else {
+    setSelectedCategory("All");
+  }
+
+  setCurrentPage(1);
+}, []);
+
   // Fetch products from MongoDB
   useEffect(() => {
     async function fetchProducts() {
@@ -133,11 +147,12 @@ const response = await fetch("/api/products?limit=100");
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
 
-    const matchesCategory =
-      selectedCategory === "All" ||
-      product.category
-        .toLowerCase()
-        .includes(selectedCategory.toLowerCase());
+   const matchesCategory =
+  selectedCategory === "All" ||
+  product.category
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .includes(selectedCategory.trim().toLowerCase());
 
     const matchesBrand =
       selectedBrand === "All" ||
@@ -235,66 +250,101 @@ const handleAddToCart = async (productId: string) => {
               />
             </div>
 
-            {/* Filters */}
-            <div className="mt-5 flex flex-wrap gap-3">
+   {/* Filters */}
+<div className="mt-5 flex flex-wrap gap-3">
+  {/* Category */}
+  <div className="relative">
+    <select
+      value={selectedCategory}
+      onChange={(e) => {
+        setSelectedCategory(e.target.value);
+        setCurrentPage(1);
+      }}
+      className="appearance-none rounded-full border border-gray-300 bg-white py-2.5 pl-5 pr-11 text-sm text-gray-700 outline-none transition hover:border-gray-400 focus:border-[#155e4a]"
+    >
+      <option value="All">All Categories</option>
 
-   {/* Category */}
-<select
-  value={selectedCategory}
-  onChange={(e) => {
-    setSelectedCategory(e.target.value);
-    setCurrentPage(1);
-  }}
-  className="rounded-full border border-gray-300 bg-white px-5 py-2.5 text-sm outline-none focus:border-[#155e4a]"
->
- <option value="All">All Categories</option>
-<option value="Clothes">Clothes</option>
-<option value="Beauty">Beauty</option>
-<option value="Shoes">Shoes</option>
-<option value="Bags">Bags</option>
-<option value="Devices">Devices</option>
-<option value="Electronics">Electronics</option>
+      {categories
+        .filter((category) => category !== "All")
+        .map((category) => (
+          <option key={category} value={category}>
+            {category}
+          </option>
+        ))}
+    </select>
 
+    <svg
+      className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500"
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <path d="m6 8 4 4 4-4" />
+    </svg>
+  </div>
 
-</select>
+  {/* Brand */}
+  <div className="relative">
+    <select
+      value={selectedBrand}
+      onChange={(e) => {
+        setSelectedBrand(e.target.value);
+        setCurrentPage(1);
+      }}
+      className="appearance-none rounded-full border border-gray-300 bg-white py-2.5 pl-5 pr-11 text-sm text-gray-700 outline-none transition hover:border-gray-400 focus:border-[#155e4a]"
+    >
+      <option value="All">All Brands</option>
 
-              {/* Brand */}
-              <select
-                value={selectedBrand}
-                onChange={(e) => {
-                  setSelectedBrand(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="rounded-full border border-gray-300 bg-white px-5 py-2.5 text-sm outline-none focus:border-[#155e4a]"
-              >
-                <option value="All">All Brands</option>
+      {brands
+        .filter((brand) => brand !== "All")
+        .map((brand) => (
+          <option key={brand} value={brand}>
+            {brand}
+          </option>
+        ))}
+    </select>
 
-                {brands
-                  .filter((brand) => brand !== "All")
-                  .map((brand) => (
-                    <option key={brand} value={brand}>
-                      {brand}
-                    </option>
-                  ))}
-              </select>
+    <svg
+      className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500"
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <path d="m6 8 4 4 4-4" />
+    </svg>
+  </div>
 
-              {/* Price */}
-              <select
-                value={selectedPrice}
-                onChange={(e) => {
-                  setSelectedPrice(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="rounded-full border border-gray-300 bg-white px-5 py-2.5 text-sm outline-none focus:border-[#155e4a]"
-              >
-                <option value="All">All Prices</option>
-                <option value="Under 100">Under 100</option>
-                <option value="100 - 500">100 - 500</option>
-                <option value="Above 500">Above 500</option>
-              </select>
+  {/* Price */}
+  <div className="relative">
+    <select
+      value={selectedPrice}
+      onChange={(e) => {
+        setSelectedPrice(e.target.value);
+        setCurrentPage(1);
+      }}
+      className="appearance-none rounded-full border border-gray-300 bg-white py-2.5 pl-5 pr-11 text-sm text-gray-700 outline-none transition hover:border-gray-400 focus:border-[#155e4a]"
+    >
+      <option value="All">All Prices</option>
+      <option value="Under 100">Under 100</option>
+      <option value="100 - 500">100 - 500</option>
+      <option value="Above 500">Above 500</option>
+    </select>
 
-            </div>
-          </div>
+    <svg
+      className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500"
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <path d="m6 8 4 4 4-4" />
+    </svg>
+  </div>
+</div>
+
+</div>
 
           {/* Loading */}
           {loading && (
