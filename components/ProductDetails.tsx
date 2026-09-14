@@ -12,21 +12,28 @@ type ProductDetailsProps = {
     image: string;
     category: string;
     name: string;
+    description?: string;
     price: number;
     oldPrice?: number;
     badge?: string;
     brand?: string;
     collection?: string;
     type?: string;
-    stock?: string;
+    stock?: number;
   };
 };
 
 export default function ProductDetails({
   product,
 }: ProductDetailsProps) {
-  const [quantity, setQuantity] = useState(1);
-  const [showCharacteristics, setShowCharacteristics] = useState(false);
+  const stock = product.stock ?? 0;
+  const isOutOfStock = stock <= 0;
+
+  const [quantity, setQuantity] = useState(
+    stock > 0 ? 1 : 0
+  );
+  const [showCharacteristics, setShowCharacteristics] =
+    useState(false);
 
   const { toggleWishlist, isWishlisted } = useWishlist();
   const { addToCart } = useCart();
@@ -35,6 +42,10 @@ export default function ProductDetails({
   const price = product.price;
 
   const handleAddToCart = async () => {
+    if (isOutOfStock || quantity < 1 || quantity > stock) {
+      return;
+    }
+
     try {
       await addToCart(product._id, quantity);
 
@@ -92,6 +103,20 @@ export default function ProductDetails({
               {product.name}
             </h1>
 
+
+{product.description && (
+  <div className="mt-6">
+    <h2 className="text-lg font-semibold text-gray-900">
+      Description
+    </h2>
+
+    <p className="mt-2 text-sm leading-7 text-gray-600">
+      {product.description}
+    </p>
+  </div>
+)}
+
+
             {/* Description */}
             <p className="mt-2 max-w-xl text-base leading-6 text-gray-600">
               {product.category} — {product.name}
@@ -127,12 +152,14 @@ export default function ProductDetails({
 
               <p
                 className={`mt-2 font-medium ${
-                  product.stock === "Available"
-                    ? "text-green-800"
-                    : "text-red-600"
+                  isOutOfStock
+                    ? "text-red-600"
+                    : "text-green-800"
                 }`}
               >
-                {product.stock}
+                {isOutOfStock
+                  ? "Out of Stock"
+                  : `In Stock (${stock})`}
               </p>
             </div>
 
@@ -140,8 +167,15 @@ export default function ProductDetails({
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
 
               {/* Quantity */}
-              <div className="flex w-fit items-center rounded-full border border-gray-300 bg-white">
+              <div
+                className={`flex w-fit items-center rounded-full border border-gray-300 bg-white ${
+                  isOutOfStock
+                    ? "opacity-50"
+                    : ""
+                }`}
+              >
 
+                {/* Minus */}
                 <button
                   type="button"
                   onClick={() =>
@@ -149,21 +183,31 @@ export default function ProductDetails({
                       Math.max(1, current - 1)
                     )
                   }
-                  className="px-5 py-3 text-lg text-gray-600"
+                  disabled={
+                    isOutOfStock || quantity <= 1
+                  }
+                  className="px-5 py-3 text-lg text-gray-600 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   −
                 </button>
 
+                {/* Quantity */}
                 <span className="min-w-10 text-center font-semibold text-black">
                   {quantity}
                 </span>
 
+                {/* Plus */}
                 <button
                   type="button"
                   onClick={() =>
-                    setQuantity((current) => current + 1)
+                    setQuantity((current) =>
+                      Math.min(stock, current + 1)
+                    )
                   }
-                  className="px-5 py-3 text-lg text-gray-600"
+                  disabled={
+                    isOutOfStock || quantity >= stock
+                  }
+                  className="px-5 py-3 text-lg text-gray-600 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   +
                 </button>
@@ -174,7 +218,8 @@ export default function ProductDetails({
               <button
                 type="button"
                 onClick={handleAddToCart}
-                className="flex-1 rounded-full bg-[#155e4a] px-6 py-3 font-semibold text-white transition hover:bg-[#0f4939]"
+                disabled={isOutOfStock}
+                className="flex-1 rounded-full bg-[#155e4a] px-6 py-3 font-semibold text-white transition hover:bg-[#0f4939] disabled:cursor-not-allowed disabled:bg-gray-400"
               >
                 🛒 Add to Cart — $
                 {(price * quantity).toLocaleString()}
@@ -198,7 +243,9 @@ export default function ProductDetails({
                 }`}
               >
                 <span className="text-3xl">
-                  {isWishlisted(product._id) ? "♥" : "♡"}
+                  {isWishlisted(product._id)
+                    ? "♥"
+                    : "♡"}
                 </span>
               </button>
 
@@ -306,7 +353,7 @@ export default function ProductDetails({
                     </span>
 
                     <span className="font-semibold text-black">
-                      {product.stock}
+                      {stock}
                     </span>
                   </div>
 

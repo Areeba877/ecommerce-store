@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 type ApiProduct = {
   _id: string;
   name: string;
+  description?: string;
   category: string;
   price: number;
   oldPrice?: number;
@@ -14,7 +15,7 @@ type ApiProduct = {
   brand?: string;
   collection?: string;
   type?: string;
-  stock?: string;
+  stock?: number;
 };
 
 export default async function ProductPage({

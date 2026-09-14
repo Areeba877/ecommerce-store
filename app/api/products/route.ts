@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Product from "@/models/Product";
 
-// GET products + search + filters + pagination
 export async function GET(request: Request) {
   try {
     await connectDB();
@@ -19,12 +18,11 @@ export async function GET(request: Request) {
     const minPrice = searchParams.get("minPrice");
     const maxPrice = searchParams.get("maxPrice");
 
-    const page = Math.max(Number(searchParams.get("page")) || 1, 1);
-    const limit = Math.max(Number(searchParams.get("limit")) || 6, 1);
+    const pageParam = searchParams.get("page");
+    const limitParam = searchParams.get("limit");
 
     const filter: Record<string, unknown> = {};
 
-    // Search
     if (search) {
       filter.$or = [
         { name: { $regex: search, $options: "i" } },
@@ -33,17 +31,20 @@ export async function GET(request: Request) {
       ];
     }
 
-    // Category
     if (category) {
-      filter.category = { $regex: category, $options: "i" };
+      filter.category = {
+        $regex: category,
+        $options: "i",
+      };
     }
 
-    // Brand
     if (brand) {
-      filter.brand = { $regex: brand, $options: "i" };
+      filter.brand = {
+        $regex: brand,
+        $options: "i",
+      };
     }
 
-    // Other filters
     if (collection) {
       filter.collection = collection;
     }
@@ -52,11 +53,14 @@ export async function GET(request: Request) {
       filter.type = type;
     }
 
-    if (stock) {
-      filter.stock = stock;
+    if (stock === "Available") {
+      filter.stock = { $gt: 0 };
+    } else if (stock === "Out of Stock") {
+      filter.stock = 0;
+    } else if (stock && !Number.isNaN(Number(stock))) {
+      filter.stock = Number(stock);
     }
 
-    // Price filter
     if (minPrice || maxPrice) {
       const priceFilter: Record<string, number> = {};
 
@@ -71,10 +75,32 @@ export async function GET(request: Request) {
       filter.price = priceFilter;
     }
 
-    // Total products matching filters
     const totalProducts = await Product.countDocuments(filter);
 
-    // Pagination
+    if (!pageParam && !limitParam) {
+      const products = await Product.find(filter).sort({
+        createdAt: -1,
+      });
+
+      return NextResponse.json(
+        {
+          products,
+          pagination: {
+            currentPage: 1,
+            limit: totalProducts,
+            totalProducts,
+            totalPages: totalProducts > 0 ? 1 : 0,
+            hasNextPage: false,
+            hasPreviousPage: false,
+          },
+        },
+        { status: 200 }
+      );
+    }
+
+    const page = Math.max(Number(pageParam) || 1, 1);
+    const limit = Math.max(Number(limitParam) || 6, 1);
+
     const skip = (page - 1) * limit;
 
     const products = await Product.find(filter)
@@ -102,12 +128,13 @@ export async function GET(request: Request) {
     console.error("GET products error:", error);
 
     return NextResponse.json(
-      { message: "Failed to fetch products" },
+      {
+        message: "Failed to fetch products",
+      },
       { status: 500 }
     );
   }
 }
-
 
 // POST create product
 export async function POST(request: Request) {
@@ -116,7 +143,33 @@ export async function POST(request: Request) {
 
     const body = await request.json();
 
-    const product = await Product.create(body);
+    if (
+      body.stock === undefined ||
+      !Number.isInteger(Number(body.stock)) ||
+      Number(body.stock) < 0
+    ) {
+      return NextResponse.json(
+        { message: "Stock must be a non-negative whole number." },
+        { status: 400 }
+      );
+    }
+
+    const product = await Product.create({
+      name: body.name,
+      description: body.description || "",
+      category: body.category,
+      price: Number(body.price),
+      oldPrice:
+        body.oldPrice !== undefined
+          ? Number(body.oldPrice)
+          : undefined,
+      image: body.image,
+      badge: body.badge,
+      brand: body.brand,
+      collection: body.collection,
+      type: body.type,
+      stock: Number(body.stock),
+    });
 
     return NextResponse.json(product, { status: 201 });
   } catch (error) {

@@ -47,19 +47,38 @@ export async function PUT(
     const { id } = await context.params;
     const body = await request.json();
 
+    if (
+      body.stock === undefined ||
+      !Number.isInteger(Number(body.stock)) ||
+      Number(body.stock) < 0
+    ) {
+      return NextResponse.json(
+        {
+          message:
+            "Stock must be a non-negative whole number.",
+        },
+        { status: 400 }
+      );
+    }
+
     const product = await Product.findByIdAndUpdate(
       id,
       {
         name: body.name,
+        description: body.description || "",
         category: body.category,
-        price: body.price,
-        oldPrice: body.oldPrice,
+        price: Number(body.price),
+        oldPrice:
+          body.oldPrice !== undefined &&
+          body.oldPrice !== ""
+            ? Number(body.oldPrice)
+            : undefined,
         image: body.image,
         badge: body.badge,
         brand: body.brand,
         collection: body.collection,
         type: body.type,
-        stock: body.stock,
+        stock: Number(body.stock),
       },
       {
         new: true,

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 import { connectDB } from "@/lib/mongodb";
 import Cart from "@/models/Cart";
-import "@/models/Product";
+import Product from "@/models/Product";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -115,9 +115,36 @@ export async function POST(request: Request) {
 
     await connectDB();
 
+    const product = await Product.findById(productId);
+
+    if (!product) {
+      return NextResponse.json(
+        { message: "Product not found." },
+        { status: 404 }
+      );
+    }
+
+    if (product.stock <= 0) {
+      return NextResponse.json(
+        { message: "This product is out of stock." },
+        { status: 400 }
+      );
+    }
+
     let cart = await Cart.findOne({ user: userId });
 
     if (!cart) {
+      if (quantity > product.stock) {
+        return NextResponse.json(
+          {
+            message: `Only ${product.stock} item${
+              product.stock === 1 ? "" : "s"
+            } available in stock.`,
+          },
+          { status: 400 }
+        );
+      }
+
       cart = await Cart.create({
         user: userId,
         items: [
@@ -133,8 +160,32 @@ export async function POST(request: Request) {
       );
 
       if (existingItem) {
-        existingItem.quantity += quantity;
+        const newQuantity = existingItem.quantity + quantity;
+
+        if (newQuantity > product.stock) {
+          return NextResponse.json(
+            {
+              message: `Only ${product.stock} item${
+                product.stock === 1 ? "" : "s"
+              } available in stock.`,
+            },
+            { status: 400 }
+          );
+        }
+
+        existingItem.quantity = newQuantity;
       } else {
+        if (quantity > product.stock) {
+          return NextResponse.json(
+            {
+              message: `Only ${product.stock} item${
+                product.stock === 1 ? "" : "s"
+              } available in stock.`,
+            },
+            { status: 400 }
+          );
+        }
+
         cart.items.push({
           product: productId,
           quantity,
@@ -193,6 +244,33 @@ export async function PUT(request: Request) {
     }
 
     await connectDB();
+
+    const product = await Product.findById(productId);
+
+    if (!product) {
+      return NextResponse.json(
+        { message: "Product not found." },
+        { status: 404 }
+      );
+    }
+
+    if (product.stock <= 0) {
+      return NextResponse.json(
+        { message: "This product is out of stock." },
+        { status: 400 }
+      );
+    }
+
+    if (quantity > product.stock) {
+      return NextResponse.json(
+        {
+          message: `Only ${product.stock} item${
+            product.stock === 1 ? "" : "s"
+          } available in stock.`,
+        },
+        { status: 400 }
+      );
+    }
 
     const cart = await Cart.findOne({ user: userId });
 
@@ -264,7 +342,7 @@ export async function DELETE(request: Request) {
 
     if (!productId) {
       cart.items = [];
-      
+
       await cart.save();
 
       return NextResponse.json(
