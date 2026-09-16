@@ -6,6 +6,7 @@ import Order from "@/models/Order";
 import Product from "@/models/Product";
 import Cart from "@/models/Cart";
 import { connectDB } from "@/lib/mongodb";
+import { createNotification } from "@/lib/notifications";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -211,6 +212,23 @@ export async function POST(request: NextRequest) {
       { user: userId },
       { $set: { items: [] } }
     );
+
+    // 🔔 Send realtime notification to admin
+    try {
+      await createNotification({
+        recipientRole: "admin",
+        title: "New Order Received",
+        message: `New order placed by ${customerName}. Total: $${total}`,
+        type: "order",
+link: `/admin/orders`,
+      });
+    } catch (notificationError) {
+      // Notification failure should not make the order fail
+      console.error(
+        "Admin notification error:",
+        notificationError
+      );
+    }
 
     return NextResponse.json(
       {

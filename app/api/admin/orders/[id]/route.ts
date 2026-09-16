@@ -5,6 +5,7 @@ import Order from "@/models/Order";
 import Product from "@/models/Product";
 import { connectDB } from "@/lib/mongodb";
 import { getAdminUser } from "@/lib/adminAuth";
+import { createNotification } from "@/lib/notifications";
 
 const allowedStatuses = [
   "pending",
@@ -12,7 +13,7 @@ const allowedStatuses = [
   "shipped",
   "delivered",
   "cancelled",
-];
+] as const;
 
 export async function GET(
   request: NextRequest,
@@ -96,7 +97,12 @@ export async function PATCH(
     const body = await request.json();
     const { status } = body;
 
-    if (!status || !allowedStatuses.includes(status)) {
+    if (
+      !status ||
+      !allowedStatuses.includes(
+        status as (typeof allowedStatuses)[number]
+      )
+    ) {
       return NextResponse.json(
         {
           message: "Invalid order status.",
@@ -104,6 +110,17 @@ export async function PATCH(
         { status: 400 }
       );
     }
+
+    const existingOrder = await Order.findById(id);
+
+    if (!existingOrder) {
+      return NextResponse.json(
+        { message: "Order not found." },
+        { status: 404 }
+      );
+    }
+
+    const oldStatus = existingOrder.status;
 
     const order = await Order.findByIdAndUpdate(
       id,
@@ -119,6 +136,29 @@ export async function PATCH(
         { message: "Order not found." },
         { status: 404 }
       );
+    }
+
+    // Send notification only when status actually changes
+    if (oldStatus !== status && order.user) {
+      try {
+        const formattedStatus =
+          String(status).charAt(0).toUpperCase() +
+          String(status).slice(1);
+
+        await createNotification({
+          recipient: order.user.toString(),
+          recipientRole: "user",
+          title: "Order Status Updated",
+          message: `Your order status has been changed to ${formattedStatus}.`,
+          type: "order_status",
+          link: `/orders/${order._id}`,
+        });
+      } catch (notificationError) {
+        console.error(
+          "Customer notification error:",
+          notificationError
+        );
+      }
     }
 
     return NextResponse.json(

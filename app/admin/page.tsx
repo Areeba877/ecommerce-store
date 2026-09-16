@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Pusher from "pusher-js";
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -35,6 +36,17 @@ interface DashboardData {
   totalOrders: number;
   totalRevenue: number;
   recentOrders: RecentOrder[];
+}
+
+interface Notification {
+  _id: string;
+  recipientRole: "user" | "admin";
+  title: string;
+  message: string;
+  type: "order" | "order_status" | "promotion" | "system";
+  link?: string;
+  isRead: boolean;
+  createdAt: string;
 }
 
 const navigation = [
@@ -76,6 +88,12 @@ export default function AdminDashboardPage() {
   const [error, setError] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const [notifications, setNotifications] = useState<
+    Notification[]
+  >([]);
+  const [isNotificationOpen, setIsNotificationOpen] =
+    useState(false);
+
   useEffect(() => {
     async function loadDashboard() {
       try {
@@ -105,35 +123,220 @@ export default function AdminDashboardPage() {
     loadDashboard();
   }, []);
 
+  // Load existing admin notifications
+  useEffect(() => {
+    async function loadNotifications() {
+      try {
+        const response = await fetch("/api/notifications");
+
+        if (!response.ok) {
+          return;
+        }
+
+        const result = await response.json();
+
+        setNotifications(result.notifications || []);
+      } catch (error) {
+        console.error(
+          "Failed to load notifications:",
+          error
+        );
+      }
+    }
+
+    loadNotifications();
+  }, []);
+
+  // Realtime Pusher notifications
+  useEffect(() => {
+    const pusherKey =
+      process.env.NEXT_PUBLIC_PUSHER_KEY;
+
+    const pusherCluster =
+      process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
+
+    if (!pusherKey || !pusherCluster) {
+      console.error(
+        "Pusher environment variables are missing."
+      );
+      return;
+    }
+
+    const pusher = new Pusher(pusherKey, {
+      cluster: pusherCluster,
+      authEndpoint: "/api/pusher/auth",
+    });
+
+    const channel = pusher.subscribe(
+      "private-admin-notifications"
+    );
+
+    const handleNotification = (data: {
+      notification: Notification;
+    }) => {
+      if (!data?.notification) {
+        return;
+      }
+
+      setNotifications((previous) => {
+        const alreadyExists = previous.some(
+          (notification) =>
+            notification._id ===
+            data.notification._id
+        );
+
+        if (alreadyExists) {
+          return previous;
+        }
+
+        return [
+          data.notification,
+          ...previous,
+        ];
+      });
+    };
+
+    channel.bind(
+      "notification",
+      handleNotification
+    );
+
+    channel.bind(
+      "pusher:subscription_error",
+      (status: unknown) => {
+        console.error(
+          "Pusher subscription error:",
+          status
+        );
+      }
+    );
+
+    return () => {
+      channel.unbind(
+        "notification",
+        handleNotification
+      );
+
+      channel.unbind(
+        "pusher:subscription_error"
+      );
+
+      pusher.unsubscribe(
+        "private-admin-notifications"
+      );
+
+      pusher.disconnect();
+    };
+  }, []);
+
+  const unreadNotificationCount =
+    notifications.filter(
+      (notification) => !notification.isRead
+    ).length;
+
+  async function markNotificationAsRead(
+    id: string
+  ) {
+    try {
+      const response = await fetch(
+        `/api/notifications/${id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            isRead: true,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        return;
+      }
+
+      setNotifications((previous) =>
+        previous.map((notification) =>
+          notification._id === id
+            ? {
+                ...notification,
+                isRead: true,
+              }
+            : notification
+        )
+      );
+    } catch (error) {
+      console.error(
+        "Failed to mark notification as read:",
+        error
+      );
+    }
+  }
+
+  async function markAllNotificationsAsRead() {
+    try {
+      const response = await fetch(
+        "/api/notifications/read-all",
+        {
+          method: "PATCH",
+        }
+      );
+
+      if (!response.ok) {
+        return;
+      }
+
+      setNotifications((previous) =>
+        previous.map((notification) => ({
+          ...notification,
+          isRead: true,
+        }))
+      );
+    } catch (error) {
+      console.error(
+        "Failed to mark all notifications as read:",
+        error
+      );
+    }
+  }
+
   const orderStats = useMemo(() => {
     const orders = data?.recentOrders || [];
 
     return {
       completed: orders.filter((order) => {
         const status = order.status?.toLowerCase();
-        return status === "completed" || status === "delivered";
+
+        return (
+          status === "completed" ||
+          status === "delivered"
+        );
       }).length,
 
       processing: orders.filter(
         (order) =>
-          order.status?.toLowerCase() === "processing"
+          order.status?.toLowerCase() ===
+          "processing"
       ).length,
 
       pending: orders.filter(
         (order) =>
-          order.status?.toLowerCase() === "pending"
+          order.status?.toLowerCase() ===
+          "pending"
       ).length,
 
       cancelled: orders.filter(
         (order) =>
-          order.status?.toLowerCase() === "cancelled"
+          order.status?.toLowerCase() ===
+          "cancelled"
       ).length,
     };
   }, [data]);
 
   const recentRevenue = useMemo(() => {
     return (data?.recentOrders || []).reduce(
-      (sum, order) => sum + Number(order.total || 0),
+      (sum, order) =>
+        sum + Number(order.total || 0),
       0
     );
   }, [data]);
@@ -143,6 +346,7 @@ export default function AdminDashboardPage() {
       <main className="flex min-h-screen items-center justify-center bg-[#f5f7f6]">
         <div className="text-center">
           <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-[#176b55]" />
+
           <p className="mt-4 text-sm text-gray-500">
             Loading dashboard...
           </p>
@@ -192,8 +396,13 @@ export default function AdminDashboardPage() {
             href="/"
             className="text-2xl font-extrabold tracking-tight"
           >
-            <span className="text-[#123b2a]">SHOPCAR</span>
-            <span className="text-[#2f9638]">T</span>
+            <span className="text-[#123b2a]">
+              SHOPCAR
+            </span>
+
+            <span className="text-[#2f9638]">
+              T
+            </span>
           </Link>
 
           <button
@@ -213,20 +422,26 @@ export default function AdminDashboardPage() {
           <nav className="space-y-1.5">
             {navigation.map((item) => {
               const Icon = item.icon;
-              const active = item.name === "Dashboard";
+              const active =
+                item.name === "Dashboard";
 
               return (
                 <Link
                   key={item.name}
                   href={item.href}
-                  onClick={() => setSidebarOpen(false)}
+                  onClick={() =>
+                    setSidebarOpen(false)
+                  }
                   className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
                     active
                       ? "bg-[#eaf5ef] text-[#176b55]"
                       : "text-gray-600 hover:bg-gray-50 hover:text-[#176b55]"
                   }`}
                 >
-                  <Icon size={19} strokeWidth={1.8} />
+                  <Icon
+                    size={19}
+                    strokeWidth={1.8}
+                  />
 
                   <span>{item.name}</span>
 
@@ -246,7 +461,11 @@ export default function AdminDashboardPage() {
             href="/"
             className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-gray-600 transition hover:bg-gray-50 hover:text-[#176b55]"
           >
-            <Store size={19} strokeWidth={1.8} />
+            <Store
+              size={19}
+              strokeWidth={1.8}
+            />
+
             <span>View Store</span>
           </Link>
         </div>
@@ -280,7 +499,9 @@ export default function AdminDashboardPage() {
           <div className="flex h-20 items-center justify-between gap-4 px-5 sm:px-8">
             <div className="flex items-center gap-3">
               <button
-                onClick={() => setSidebarOpen(true)}
+                onClick={() =>
+                  setSidebarOpen(true)
+                }
                 className="rounded-xl border border-gray-200 p-2.5 text-gray-600 lg:hidden"
               >
                 <Menu size={20} />
@@ -302,14 +523,137 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              <button className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 text-gray-600 transition hover:bg-gray-50">
-                <Bell size={19} />
+              {/* Notifications */}
+              <div className="relative">
+                <button
+                  onClick={() =>
+                    setIsNotificationOpen(
+                      (previous) => !previous
+                    )
+                  }
+                  className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 text-gray-600 transition hover:bg-gray-50"
+                  aria-label="Notifications"
+                >
+                  <Bell size={19} />
 
-                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#2f9638]" />
-              </button>
+                  {unreadNotificationCount >
+                    0 && (
+                    <span className="absolute right-1 top-1 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-[#2f9638] px-1 text-[9px] font-bold text-white">
+                      {unreadNotificationCount >
+                      9
+                        ? "9+"
+                        : unreadNotificationCount}
+                    </span>
+                  )}
+                </button>
+
+                {/* Notification Dropdown */}
+                {isNotificationOpen && (
+                  <div className="absolute right-0 top-14 z-50 w-80 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
+                    {/* Header */}
+                    <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+                      <div>
+                        <h3 className="text-sm font-bold text-[#123b2a]">
+                          Notifications
+                        </h3>
+
+                        <p className="text-xs text-gray-400">
+                          {unreadNotificationCount}{" "}
+                          unread
+                        </p>
+                      </div>
+
+                      {unreadNotificationCount >
+                        0 && (
+                        <button
+                          onClick={
+                            markAllNotificationsAsRead
+                          }
+                          className="text-xs font-semibold text-[#176b55] hover:underline"
+                        >
+                          Mark all read
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Notifications List */}
+                    <div className="max-h-96 overflow-y-auto">
+                      {notifications.length ===
+                      0 ? (
+                        <div className="px-4 py-10 text-center">
+                          <Bell
+                            size={24}
+                            className="mx-auto text-gray-300"
+                          />
+
+                          <p className="mt-2 text-sm text-gray-500">
+                            No notifications
+                          </p>
+                        </div>
+                      ) : (
+                        notifications.map(
+                          (notification) => (
+                            <button
+                              key={
+                                notification._id
+                              }
+                              onClick={() => {
+                                if (
+                                  !notification.isRead
+                                ) {
+                                  markNotificationAsRead(
+                                    notification._id
+                                  );
+                                }
+
+                                if (
+                                  notification.link
+                                ) {
+                                  window.location.href =
+                                    notification.link;
+                                }
+                              }}
+                              className={`block w-full border-b border-gray-100 px-4 py-4 text-left transition hover:bg-gray-50 ${
+                                !notification.isRead
+                                  ? "bg-[#f4f8f5]"
+                                  : "bg-white"
+                              }`}
+                            >
+                              <div className="flex gap-3">
+                                <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#2f9638]" />
+
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-semibold text-gray-800">
+                                    {
+                                      notification.title
+                                    }
+                                  </p>
+
+                                  <p className="mt-1 text-xs leading-5 text-gray-500">
+                                    {
+                                      notification.message
+                                    }
+                                  </p>
+
+                                  <p className="mt-2 text-[10px] text-gray-400">
+                                    {new Date(
+                                      notification.createdAt
+                                    ).toLocaleString()}
+                                  </p>
+                                </div>
+                              </div>
+                            </button>
+                          )
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <div className="hidden h-8 w-px bg-gray-200 sm:block" />
 
+              {/* Admin Profile */}
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#176b55] text-sm font-bold text-white">
                   A
@@ -344,7 +688,8 @@ export default function AdminDashboardPage() {
                 </h1>
 
                 <p className="mt-1 text-sm text-gray-500">
-                  Monitor your ShopCart store performance.
+                  Monitor your ShopCart store
+                  performance.
                 </p>
               </div>
 
@@ -490,7 +835,8 @@ export default function AdminDashboardPage() {
                     </h2>
 
                     <p className="mt-1 text-sm text-gray-500">
-                      Revenue from currently loaded recent orders
+                      Revenue from currently loaded
+                      recent orders
                     </p>
                   </div>
 
@@ -531,7 +877,8 @@ export default function AdminDashboardPage() {
                       );
 
                       const height =
-                        (Number(order.total || 0) / max) *
+                        (Number(order.total || 0) /
+                          max) *
                         100;
 
                       return (
@@ -583,7 +930,8 @@ export default function AdminDashboardPage() {
                   <div className="relative flex h-44 w-44 items-center justify-center rounded-full border-[18px] border-[#e8f1eb]">
                     <div className="text-center">
                       <p className="text-3xl font-bold text-[#123b2a]">
-                        {data?.recentOrders?.length || 0}
+                        {data?.recentOrders?.length ||
+                          0}
                       </p>
 
                       <p className="text-xs text-gray-400">
@@ -686,7 +1034,9 @@ export default function AdminDashboardPage() {
                 <div className="mt-7 grid gap-4 sm:grid-cols-3">
                   <Snapshot
                     label="Products"
-                    value={data?.totalProducts ?? 0}
+                    value={
+                      data?.totalProducts ?? 0
+                    }
                     description="Available in store"
                   />
 
@@ -711,8 +1061,8 @@ export default function AdminDashboardPage() {
                       </p>
 
                       <p className="mt-1 text-xs text-gray-500">
-                        Manage products, orders and customers from
-                        the admin panel.
+                        Manage products, orders and
+                        customers from the admin panel.
                       </p>
                     </div>
 
@@ -784,86 +1134,92 @@ export default function AdminDashboardPage() {
                     </thead>
 
                     <tbody>
-                      {data.recentOrders.map((order) => {
-                        const status =
-                          order.status?.toLowerCase() ||
-                          "pending";
+                      {data.recentOrders.map(
+                        (order) => {
+                          const status =
+                            order.status?.toLowerCase() ||
+                            "pending";
 
-                        const statusClasses =
-                          status === "completed" ||
-                          status === "delivered"
-                            ? "bg-green-100 text-green-700"
-                            : status === "processing"
-                            ? "bg-blue-100 text-blue-700"
-                            : status === "cancelled"
-                            ? "bg-red-100 text-red-700"
-                            : "bg-orange-100 text-orange-700";
+                          const statusClasses =
+                            status === "completed" ||
+                            status === "delivered"
+                              ? "bg-green-100 text-green-700"
+                              : status === "processing"
+                              ? "bg-blue-100 text-blue-700"
+                              : status === "cancelled"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-orange-100 text-orange-700";
 
-                        return (
-                          <tr
-                            key={order._id}
-                            className="border-b border-gray-100 last:border-0 transition hover:bg-[#fafcfb]"
-                          >
-                            <td className="px-6 py-5">
-                              <span className="font-semibold text-[#123b2a]">
-                                #{order._id.slice(-8)}
-                              </span>
-                            </td>
+                          return (
+                            <tr
+                              key={order._id}
+                              className="border-b border-gray-100 last:border-0 transition hover:bg-[#fafcfb]"
+                            >
+                              <td className="px-6 py-5">
+                                <span className="font-semibold text-[#123b2a]">
+                                  #
+                                  {order._id.slice(
+                                    -8
+                                  )}
+                                </span>
+                              </td>
 
-                            <td className="px-6 py-5">
-                              <div className="flex items-center gap-3">
-                                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#eaf5ef] text-sm font-bold text-[#176b55]">
-                                  {(
-                                    order.customerName ||
-                                    "C"
-                                  )
-                                    .charAt(0)
-                                    .toUpperCase()}
+                              <td className="px-6 py-5">
+                                <div className="flex items-center gap-3">
+                                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#eaf5ef] text-sm font-bold text-[#176b55]">
+                                    {(
+                                      order.customerName ||
+                                      "C"
+                                    )
+                                      .charAt(0)
+                                      .toUpperCase()}
+                                  </div>
+
+                                  <div>
+                                    <p className="font-semibold text-gray-800">
+                                      {order.customerName ||
+                                        "Customer"}
+                                    </p>
+
+                                    <p className="mt-0.5 text-xs text-gray-400">
+                                      {order.customerEmail ||
+                                        "-"}
+                                    </p>
+                                  </div>
                                 </div>
+                              </td>
 
-                                <div>
-                                  <p className="font-semibold text-gray-800">
-                                    {order.customerName ||
-                                      "Customer"}
-                                  </p>
+                              <td className="px-6 py-5">
+                                <span className="font-bold text-[#176b55]">
+                                  $
+                                  {Number(
+                                    order.total || 0
+                                  ).toFixed(2)}
+                                </span>
+                              </td>
 
-                                  <p className="mt-0.5 text-xs text-gray-400">
-                                    {order.customerEmail ||
-                                      "-"}
-                                  </p>
-                                </div>
-                              </div>
-                            </td>
+                              <td className="px-6 py-5 text-sm capitalize text-gray-600">
+                                {order.paymentMethod ||
+                                  "-"}
+                              </td>
 
-                            <td className="px-6 py-5">
-                              <span className="font-bold text-[#176b55]">
-                                $
-                                {Number(
-                                  order.total || 0
-                                ).toFixed(2)}
-                              </span>
-                            </td>
+                              <td className="px-6 py-5">
+                                <span
+                                  className={`rounded-full px-3 py-1.5 text-xs font-semibold capitalize ${statusClasses}`}
+                                >
+                                  {status}
+                                </span>
+                              </td>
 
-                            <td className="px-6 py-5 text-sm capitalize text-gray-600">
-                              {order.paymentMethod || "-"}
-                            </td>
-
-                            <td className="px-6 py-5">
-                              <span
-                                className={`rounded-full px-3 py-1.5 text-xs font-semibold capitalize ${statusClasses}`}
-                              >
-                                {status}
-                              </span>
-                            </td>
-
-                            <td className="px-6 py-5 text-sm text-gray-500">
-                              {new Date(
-                                order.createdAt
-                              ).toLocaleDateString()}
-                            </td>
-                          </tr>
-                        );
-                      })}
+                              <td className="px-6 py-5 text-sm text-gray-500">
+                                {new Date(
+                                  order.createdAt
+                                ).toLocaleDateString()}
+                              </td>
+                            </tr>
+                          );
+                        }
+                      )}
                     </tbody>
                   </table>
                 ) : (
@@ -875,7 +1231,8 @@ export default function AdminDashboardPage() {
             </section>
 
             <footer className="py-8 text-center text-xs text-gray-400">
-              ShopCart Admin Panel • Store Management System
+              ShopCart Admin Panel • Store Management
+              System
             </footer>
           </div>
         </div>
