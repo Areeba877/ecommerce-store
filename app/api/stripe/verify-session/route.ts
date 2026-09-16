@@ -7,6 +7,7 @@ import { connectDB } from "@/lib/mongodb";
 import Cart from "@/models/Cart";
 import Product from "@/models/Product";
 import Order from "@/models/Order";
+import { createNotification } from "@/lib/notifications";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -70,7 +71,6 @@ export async function POST(request: NextRequest) {
 
     // Retrieve session directly from Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId);
-
 
     // Make sure this payment belongs to this user
     if (session.metadata?.userId !== userId) {
@@ -213,6 +213,22 @@ export async function POST(request: NextRequest) {
     // Clear cart only after payment is verified
     cart.items = [];
     await cart.save();
+
+    // Send realtime notification to admin
+    try {
+      await createNotification({
+        recipientRole: "admin",
+        title: "New Order Received",
+        message: `New order placed by ${metadata.customerName}. Total: $${total}`,
+        type: "order",
+link: `/admin/orders`,
+      });
+    } catch (notificationError) {
+      console.error(
+        "Admin notification error:",
+        notificationError
+      );
+    }
 
     return NextResponse.json(
       {

@@ -44,49 +44,96 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!channelName.startsWith("private-order-")) {
-      return NextResponse.json(
-        { message: "Invalid channel." },
-        { status: 403 }
+    // Admin notification channel
+    if (channelName === "private-admin-notifications") {
+      if (role !== "admin") {
+        return NextResponse.json(
+          { message: "Forbidden." },
+          { status: 403 }
+        );
+      }
+
+      const authResponse = pusher.authorizeChannel(
+        socketId,
+        channelName
       );
+
+      return NextResponse.json(authResponse);
     }
 
-    const orderId = channelName.replace("private-order-", "");
-
-    if (!mongoose.Types.ObjectId.isValid(orderId)) {
-      return NextResponse.json(
-        { message: "Invalid order ID." },
-        { status: 400 }
+    // User notification channel
+    if (channelName.startsWith("private-user-")) {
+      const notificationUserId = channelName.replace(
+        "private-user-",
+        ""
       );
+
+      if (!mongoose.Types.ObjectId.isValid(notificationUserId)) {
+        return NextResponse.json(
+          { message: "Invalid user ID." },
+          { status: 400 }
+        );
+      }
+
+      if (notificationUserId !== userId) {
+        return NextResponse.json(
+          { message: "Forbidden." },
+          { status: 403 }
+        );
+      }
+
+      const authResponse = pusher.authorizeChannel(
+        socketId,
+        channelName
+      );
+
+      return NextResponse.json(authResponse);
     }
 
-    await connectDB();
+    // Existing order notification channel
+    if (channelName.startsWith("private-order-")) {
+      const orderId = channelName.replace("private-order-", "");
 
-    const order = await Order.findById(orderId).select("user");
+      if (!mongoose.Types.ObjectId.isValid(orderId)) {
+        return NextResponse.json(
+          { message: "Invalid order ID." },
+          { status: 400 }
+        );
+      }
 
-    if (!order) {
-      return NextResponse.json(
-        { message: "Order not found." },
-        { status: 404 }
+      await connectDB();
+
+      const order = await Order.findById(orderId).select("user");
+
+      if (!order) {
+        return NextResponse.json(
+          { message: "Order not found." },
+          { status: 404 }
+        );
+      }
+
+      const isOwner = order.user.toString() === userId;
+      const isAdmin = role === "admin";
+
+      if (!isOwner && !isAdmin) {
+        return NextResponse.json(
+          { message: "Forbidden." },
+          { status: 403 }
+        );
+      }
+
+      const authResponse = pusher.authorizeChannel(
+        socketId,
+        channelName
       );
+
+      return NextResponse.json(authResponse);
     }
 
-    const isOwner = order.user.toString() === userId;
-    const isAdmin = role === "admin";
-
-    if (!isOwner && !isAdmin) {
-      return NextResponse.json(
-        { message: "Forbidden." },
-        { status: 403 }
-      );
-    }
-
-    const authResponse = pusher.authorizeChannel(
-      socketId,
-      channelName
+    return NextResponse.json(
+      { message: "Invalid channel." },
+      { status: 403 }
     );
-
-    return NextResponse.json(authResponse);
   } catch (error) {
     console.error("Pusher auth error:", error);
 
