@@ -6,6 +6,7 @@ export interface IUser extends Document {
   password: string;
   role: "user" | "admin";
   isVerified: boolean;
+  fcmTokens?: string[];
   verificationCode?: string;
   verificationCodeExpires?: Date;
   resetPasswordToken?: string;
@@ -45,6 +46,11 @@ const UserSchema = new Schema<IUser>(
       type: Boolean,
       default: false,
     },
+
+    fcmTokens: {
+  type: [String],
+  default: [],
+},
 
     verificationCode: {
       type: String,

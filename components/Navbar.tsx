@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Pusher from "pusher-js";
 import { useWishlist } from "../app/WishlistContext";
+import FCMNotifications from "@/components/FCMNotifications";
 
 type Notification = {
   _id: string;
@@ -188,7 +189,33 @@ export default function Navbar() {
           cache: "no-store",
         });
 
-        const data = await res.json();
+       const responseText = await res.text();
+
+if (!responseText) {
+  console.error(
+    "Notifications API returned an empty response:",
+    res.status
+  );
+  return;
+}
+
+let data;
+
+try {
+  data = JSON.parse(responseText);
+} catch (error) {
+  console.error(
+    "Notifications API returned invalid JSON:",
+    responseText
+  );
+  return;
+}
+
+if (!cancelled && res.ok) {
+  setNotifications(data.notifications || []);
+}
+
+
 
         if (cancelled) return;
 
@@ -237,7 +264,27 @@ export default function Navbar() {
           cache: "no-store",
         });
 
-        const data = await res.json();
+const responseText = await res.text();
+
+if (!responseText) {
+  console.error(
+    "Notifications API returned an empty response:",
+    res.status
+  );
+  return;
+}
+
+let data;
+
+try {
+  data = JSON.parse(responseText);
+} catch (error) {
+  console.error(
+    "Notifications API returned invalid JSON:",
+    responseText
+  );
+  return;
+}
 
         if (!cancelled && res.ok) {
           setNotifications(data.notifications || []);
@@ -418,8 +465,12 @@ export default function Navbar() {
     return pathname.startsWith(href);
   };
 
-  return (
-    <header className="sticky top-0 z-50 border-b border-gray-100 bg-white">
+ return (
+  <>
+    <FCMNotifications />
+
+    <header className="sticky top-0 z-50 border-b border-gray-100 bg-white">   
+   
       <div className="mx-auto flex h-[76px] max-w-[1280px] items-center justify-between px-5 sm:px-8 lg:px-3">
         {/* Logo */}
         <Link
@@ -839,6 +890,7 @@ export default function Navbar() {
           </div>
         </div>
       )}
-    </header>
+      </header>
+  </>
   );
 }

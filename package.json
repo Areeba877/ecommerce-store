@@ -12,6 +12,8 @@
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
+    "firebase": "^12.19.0",
+    "firebase-admin": "^14.4.0",
     "jose": "^6.2.9",
     "lucide-react": "^1.39.0",
     "mongoose": "^9.9.3",
