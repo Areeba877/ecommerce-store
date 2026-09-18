@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 
 const footerLinks = [
@@ -8,6 +11,11 @@ const footerLinks = [
 ];
 
 export default function Footer() {
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
   return (
     <footer className="border-t border-gray-200 bg-[#f8faf8]">
       <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-8 lg:px-10">
@@ -158,6 +166,7 @@ export default function Footer() {
             </h3>
 
             <div className="mt-5 flex items-center gap-5">
+
               {/* Instagram */}
               <a
                 href="#"
@@ -217,9 +226,95 @@ export default function Footer() {
                   <path d="M23 3.01a9.5 9.5 0 0 1-2.64.72A4.6 4.6 0 0 0 22.38 1.2a9.2 9.2 0 0 1-2.92 1.12A4.6 4.6 0 0 0 11.54 6.5c0 .36.04.72.12 1.04A13.05 13.05 0 0 1 2.17 1.84a4.6 4.6 0 0 0 1.42 6.14 4.55 4.55 0 0 1-2.08-.57v.06a4.6 4.6 0 0 0 3.69 4.51 4.6 4.6 0 0 1-2.07.08 4.6 4.6 0 0 0 4.3 3.19A9.23 9.23 0 0 1 1.7 17.2c-.38 0-.76-.02-1.13-.07A13 13 0 0 0 7.62 19c8.28 0 12.8-6.86 12.8-12.8 0-.2 0-.39-.01-.58A9.15 9.15 0 0 0 23 3.01Z" />
                 </svg>
               </a>
+
+            </div>
+
+            {/* Newsletter */}
+            <div className="mt-8">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-gray-900">
+                Newsletter
+              </h4>
+
+              <p className="mt-2 text-sm text-gray-600">
+                Subscribe for latest updates and deals.
+              </p>
+
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+
+                  setMessage("");
+                  setError("");
+
+                  if (!email.trim()) {
+                    setError("Please enter your email.");
+                    return;
+                  }
+
+                  try {
+                    setLoading(true);
+
+                    const response = await fetch("/api/newsletter", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                      },
+                      body: JSON.stringify({
+                        email: email.trim(),
+                      }),
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                      setError(
+                        data.message || "Subscription failed."
+                      );
+                      return;
+                    }
+
+                    setMessage(data.message);
+                    setEmail("");
+                  } catch {
+                    setError(
+                      "Something went wrong. Please try again."
+                    );
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="mt-4 flex flex-col gap-2"
+              >
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#2f9638]"
+                />
+
+                <button
+                  type="submit"
+                  disabled={loading}
+className="rounded-lg bg-[#123b2a] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#123b2a] disabled:opacity-60"
+                >
+                  {loading ? "Subscribing..." : "Subscribe"}
+                </button>
+              </form>
+
+              {message && (
+                <p className="mt-2 text-xs text-green-600">
+                  {message}
+                </p>
+              )}
+
+              {error && (
+                <p className="mt-2 text-xs text-red-600">
+                  {error}
+                </p>
+              )}
             </div>
           </div>
-
         </div>
 
         {/* Bottom */}
@@ -228,7 +323,6 @@ export default function Footer() {
             © 2026 SHOPCART. All rights reserved.
           </p>
         </div>
-
       </div>
     </footer>
   );
