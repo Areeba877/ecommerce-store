@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import { getToken } from "firebase/messaging";
-
+import {
+  getToken,
+  onMessage,
+} from "firebase/messaging";
 import { getFirebaseMessaging } from "@/lib/firebase";
 
 export default function FCMNotifications() {
@@ -44,6 +46,22 @@ export default function FCMNotifications() {
           vapidKey,
           serviceWorkerRegistration: registration,
         });
+
+        onMessage(messaging, (payload) => {
+  const title =
+    payload.notification?.title || "ShopCart";
+
+  const body =
+    payload.notification?.body ||
+    "You have a new notification.";
+
+  if (Notification.permission === "granted") {
+    new Notification(title, {
+      body,
+      icon: "/icon.png",
+    });
+  }
+});
 
         if (!fcmToken) {
           console.log("FCM token was not generated.");

@@ -94,6 +94,13 @@ export default function AdminDashboardPage() {
   const [isNotificationOpen, setIsNotificationOpen] =
     useState(false);
 
+    const [promotionTitle, setPromotionTitle] = useState("");
+const [promotionMessage, setPromotionMessage] = useState("");
+const [promotionLink, setPromotionLink] = useState("");
+const [sendingPromotion, setSendingPromotion] = useState(false);
+const [promotionStatus, setPromotionStatus] = useState("");
+const [promotionError, setPromotionError] = useState("");
+
   useEffect(() => {
     async function loadDashboard() {
       try {
@@ -299,6 +306,67 @@ export default function AdminDashboardPage() {
       );
     }
   }
+
+  async function sendPromotionalNotification() {
+  setPromotionStatus("");
+  setPromotionError("");
+
+  if (!promotionTitle.trim() || !promotionMessage.trim()) {
+    setPromotionError(
+      "Promotion title and message are required."
+    );
+    return;
+  }
+
+  try {
+    setSendingPromotion(true);
+
+    const response = await fetch(
+      "/api/admin/notifications/promotion",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: promotionTitle.trim(),
+          message: promotionMessage.trim(),
+          link: promotionLink.trim(),
+        }),
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        result.message ||
+          "Failed to send promotional notification."
+      );
+    }
+
+    setPromotionStatus(
+      `Promotion sent to ${result.successCount ?? 0} users successfully.`
+    );
+
+    setPromotionTitle("");
+    setPromotionMessage("");
+    setPromotionLink("");
+  } catch (error) {
+    console.error(
+      "Failed to send promotional notification:",
+      error
+    );
+
+    setPromotionError(
+      error instanceof Error
+        ? error.message
+        : "Failed to send promotional notification."
+    );
+  } finally {
+    setSendingPromotion(false);
+  }
+}
 
   const orderStats = useMemo(() => {
     const orders = data?.recentOrders || [];
@@ -701,6 +769,67 @@ export default function AdminDashboardPage() {
                 Add Product
               </Link>
             </div>
+
+{/* Promotional Notifications */}
+<section className="mb-8 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+  <div className="mb-5">
+    <h2 className="text-xl font-semibold text-[#123b2a]">
+      Promotional Notification
+    </h2>
+    <p className="mt-1 text-sm text-gray-500">
+      Send a promotional notification to all users.
+    </p>
+  </div>
+
+  <div className="space-y-4">
+    <input
+      type="text"
+      value={promotionTitle}
+      onChange={(e) => setPromotionTitle(e.target.value)}
+      placeholder="Promotion title"
+      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#2f9638]"
+    />
+
+    <textarea
+      value={promotionMessage}
+      onChange={(e) => setPromotionMessage(e.target.value)}
+      placeholder="Promotion message"
+      rows={4}
+      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#2f9638]"
+    />
+
+    <input
+      type="text"
+      value={promotionLink}
+      onChange={(e) => setPromotionLink(e.target.value)}
+      placeholder="Link (optional), e.g. /products"
+      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#2f9638]"
+    />
+
+    {promotionError && (
+      <p className="text-sm text-red-600">
+        {promotionError}
+      </p>
+    )}
+
+    {promotionStatus && (
+      <p className="text-sm text-green-600">
+        {promotionStatus}
+      </p>
+    )}
+
+    <button
+      type="button"
+      onClick={sendPromotionalNotification}
+      disabled={sendingPromotion}
+      className="rounded-xl bg-[#2f9638] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#267d2f] disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {sendingPromotion
+        ? "Sending..."
+        : "Send Promotional Notification"}
+    </button>
+  </div>
+</section>
 
             {/* Stats */}
             <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">

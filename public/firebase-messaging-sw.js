@@ -6,12 +6,12 @@ importScripts(
 );
 
 firebase.initializeApp({
-  apiKey: "YOUR_API_KEY",
+  apiKey: "AIzaSyCb8yPwd3fmaE10PZToyoGggU_x85Mysn4",
   authDomain: "shopcart-36a36.firebaseapp.com",
   projectId: "shopcart-36a36",
   storageBucket: "shopcart-36a36.firebasestorage.app",
   messagingSenderId: "78520504935",
-  appId: "YOUR_APP_ID",
+  appId: "1:78520504935:web:8ef256a58056584ef3bac2",
 });
 
 const messaging = firebase.messaging();
