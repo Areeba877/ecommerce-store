@@ -66,6 +66,12 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
+  const [isEditing, setIsEditing] = useState(false);
+  const [name, setName] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [profileMessage, setProfileMessage] = useState("");
+  const [profileError, setProfileError] = useState("");
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -84,6 +90,7 @@ export default function ProfilePage() {
         }
 
         setUser(data.user);
+        setName(data.user.name);
       } catch (error) {
         console.error("Profile fetch error:", error);
         router.push("/login");
@@ -94,6 +101,80 @@ export default function ProfilePage() {
 
     fetchUser();
   }, [router]);
+
+  const handleEditProfile = () => {
+    if (!user) {
+      return;
+    }
+
+    setName(user.name);
+    setProfileMessage("");
+    setProfileError("");
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    if (user) {
+      setName(user.name);
+    }
+
+    setProfileMessage("");
+    setProfileError("");
+    setIsEditing(false);
+  };
+
+  const handleSaveProfile = async () => {
+    setProfileMessage("");
+    setProfileError("");
+
+    const trimmedName = name.trim();
+
+    if (!trimmedName) {
+      setProfileError("Name is required.");
+      return;
+    }
+
+    if (trimmedName.length < 2) {
+      setProfileError("Name must be at least 2 characters long.");
+      return;
+    }
+
+    if (trimmedName.length > 50) {
+      setProfileError("Name must be less than 50 characters.");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+
+      const response = await fetch("/api/auth/profile", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: trimmedName,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setProfileError(data.message || "Failed to update profile.");
+        return;
+      }
+
+      setUser(data.user);
+      setName(data.user.name);
+      setProfileMessage(data.message);
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Profile update error:", error);
+      setProfileError("Something went wrong. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -203,9 +284,20 @@ export default function ProfilePage() {
               Full name
             </p>
 
-            <p className="text-[13px] font-medium text-gray-900">
-              {user.name}
-            </p>
+            {!isEditing ? (
+              <p className="text-[13px] font-medium text-gray-900">
+                {user.name}
+              </p>
+            ) : (
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter your name"
+                maxLength={50}
+                className="ml-5 w-[60%] rounded-lg border border-gray-200 px-3 py-2 text-right text-[13px] text-gray-900 outline-none focus:border-[#123b2a]"
+              />
+            )}
           </div>
 
           {/* Email */}
@@ -229,6 +321,50 @@ export default function ProfilePage() {
               {user.role}
             </p>
           </div>
+
+          {/* Profile Messages */}
+          {profileMessage && (
+            <p className="mb-4 text-center text-xs text-green-600">
+              {profileMessage}
+            </p>
+          )}
+
+          {profileError && (
+            <p className="mb-4 text-center text-xs text-red-600">
+              {profileError}
+            </p>
+          )}
+
+          {/* Edit / Save / Cancel */}
+          {!isEditing ? (
+            <button
+              type="button"
+              onClick={handleEditProfile}
+className="mb-3 w-full rounded-full bg-[#176b55] px-5 py-3 text-[13px] font-medium text-white transition-all duration-200 hover:bg-[#125b48]"
+            >
+              Edit Profile
+            </button>
+          ) : (
+            <div className="mb-3 flex gap-3">
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                disabled={isSaving}
+                className="w-1/2 rounded-full border border-gray-200 bg-white px-5 py-3 text-[13px] font-medium text-gray-700 transition-all duration-200 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSaveProfile}
+                disabled={isSaving}
+className="w-1/2 rounded-full bg-[#176b55] px-5 py-3 text-[13px] font-medium text-white transition-all duration-200 hover:bg-[#125b48] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSaving ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          )}
 
           {/* Logout */}
           <button
